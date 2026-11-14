@@ -28,6 +28,18 @@ export const GET: APIRoute = ({ site }) => {
       changefreq: 'weekly',
       priority: '0.9',
     },
+    {
+      arPath: '/gallery',
+      enPath: '/en/gallery',
+      changefreq: 'monthly',
+      priority: '0.8',
+    },
+    {
+      arPath: '/testimonials',
+      enPath: '/en/testimonials',
+      changefreq: 'monthly',
+      priority: '0.8',
+    },
     ...servicesData.map((s) => ({
       arPath: `/services/${s.slug}`,
       enPath: `/en/services/${s.slug}`,

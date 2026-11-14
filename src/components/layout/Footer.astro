@@ -100,10 +100,10 @@ const homeBase = isHome ? '' : getLocalizedPath('/', lang);
             <a href={`${homeBase}#offers`} class="transition-colors hover:text-bronze-300">{t('nav.offers')}</a>
           </li>
           <li>
-            <a href={`${homeBase}#gallery`} class="transition-colors hover:text-bronze-300">{t('nav.gallery')}</a>
+            <a href={getLocalizedPath('/gallery', lang)} class="transition-colors hover:text-bronze-300">{t('nav.gallery')}</a>
           </li>
           <li>
-            <a href={`${homeBase}#testimonials`} class="transition-colors hover:text-bronze-300">{t('nav.testimonials')}</a>
+            <a href={getLocalizedPath('/testimonials', lang)} class="transition-colors hover:text-bronze-300">{t('nav.testimonials')}</a>
           </li>
           <li>
             <a href={`${homeBase}#contact`} class="transition-colors hover:text-bronze-300">{t('nav.contact')}</a>

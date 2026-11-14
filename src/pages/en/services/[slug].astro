@@ -55,9 +55,13 @@ const structuredData = [
     },
     offers: {
       '@type': 'Offer',
+      price: service.price.isConfirmed ? service.price.amount : undefined,
       priceCurrency: 'SAR',
       availability: 'https://schema.org/InStock',
-      description: 'Pricing and duration confirmed upon inquiry',
+      url: `${siteUrl}${currentPath}`,
+      description: service.price.isConfirmed
+        ? `${service.price.display.en} - ${service.price.note?.en || ''}`
+        : 'Pricing and duration confirmed upon inquiry',
     },
   },
   {

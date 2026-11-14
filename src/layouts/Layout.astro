@@ -83,10 +83,35 @@ const localBusinessSchema: Record<string, any> = {
     addressRegion: 'Riyadh Province',
     addressCountry: 'SA',
   },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: siteConfig.coordinates.lat,
+    longitude: siteConfig.coordinates.lng,
+  },
   areaServed: {
     '@type': 'City',
     name: lang === 'ar' ? 'الرياض' : 'Riyadh',
   },
+  openingHoursSpecification: [
+    {
+      '@type': 'OpeningHoursSpecification',
+      dayOfWeek: [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ],
+      opens: '11:00',
+      closes: '23:00',
+    },
+  ],
+  sameAs: [
+    siteConfig.social.instagram,
+    siteConfig.social.tiktok,
+  ].filter(Boolean),
   amenityFeature: [
     {
       '@type': 'LocationFeatureSpecification',
@@ -169,6 +194,10 @@ const robotsContent = noindex
     <link rel="alternate" hreflang={altLang} href={altURL} />
     <link rel="alternate" hreflang="x-default" href={xDefaultURL} />
 
+    <!-- DNS Prefetch for External Assets -->
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
+
     <!-- Google Fonts: Latin + Arabic -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -177,14 +206,22 @@ const robotsContent = noindex
       rel="stylesheet"
     />
 
+    <!-- Local SEO Geo Meta Tags -->
+    <meta name="geo.region" content="SA-01" />
+    <meta name="geo.placename" content={lang === 'ar' ? 'الرياض' : 'Riyadh'} />
+    <meta name="geo.position" content={`${siteConfig.coordinates.lat};${siteConfig.coordinates.lng}`} />
+    <meta name="ICBM" content={`${siteConfig.coordinates.lat}, ${siteConfig.coordinates.lng}`} />
+
     <!-- Open Graph / Social Media -->
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonicalURL} />
     <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:secure_url" content={ogImageURL} />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:type" content="image/jpeg" />
     <meta property="og:image:alt" content={title} />
     <meta property="og:locale" content={lang === 'ar' ? 'ar_SA' : 'en_US'} />
     <meta property="og:locale:alternate" content={lang === 'ar' ? 'en_US' : 'ar_SA'} />

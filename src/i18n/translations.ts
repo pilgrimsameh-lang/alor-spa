@@ -16,9 +16,9 @@ export const defaultLang: Language = 'ar';
 export const ui = {
   ar: {
     // Site Metadata
-    'site.title': 'ألور سبا | سبا ومساج نسائي فاخر بالرياض — ALOR SPA',
-    'site.description': 'ملاذ نسائي فاخر في الرياض يقدم أرقى طقوس المساج الاسترخائي، الحمام المغربي، بدكير ومنكير، ونحت وتصريف القوام في أجواء تنبض بالسكينة والخصوصية التامة.',
-    'site.keywords': 'سبا نسائي بالرياض, مساج بالرياض, مساج نسائي بالرياض, مساج استرخائي بالرياض, مساج علاجي بالرياض, مساج الأحجار الساخنة بالرياض, حمام مغربي بالرياض, بدكير ومنكير بالرياض, نحت الجسم وتصريف السوائل بالرياض, ALOR SPA Riyadh',
+    'site.title': 'ألور سبا | أفضل سبا ومساج نسائي بالرياض — ALOR SPA',
+    'site.description': 'ألور سبا — أفضل مركز سبا ومساج نسائي بالرياض. نقدم أرقى خدمات السبا والمساج: مساج استرخائي ريلاكس، مساج علاجي، مساج الأحجار الساخنة، حمام مغربي، وبدكير ومنكير في أجواء مفعمة بالخصوصية والرفاهية.',
+    'site.keywords': 'مساج الرياض, مساج في الرياض, أفضل مركز مساج في الرياض, مركز مساج نسائي بالرياض, سبا نسائي بالرياض, مركز سبا في الرياض, مساج نسائي, خدمات السبا النسائي, مساج ريلاكس بالرياض, مساج الأحجار الساخنة بالرياض, مساج الأنسجة العميقة بالرياض, مساج كاسات الهواء بالرياض, مساج علاجي بالرياض, مساج نحت الجسم بالرياض, تصريف السوائل بالرياض, بدكير ومنكير بالرياض, حمام مغربي بالرياض, ألور سبا, مركز ألور سبا, ALOR SPA, Alor Spa Riyadh',
 
     // Navigation
     'nav.home': 'الرئيسية',
@@ -195,9 +195,9 @@ export const ui = {
   },
   en: {
     // Site Metadata
-    'site.title': 'ALOR SPA | Luxury Women Spa & Massage Sanctuary in Riyadh',
-    'site.description': "Premier luxury women-only wellness sanctuary in Riyadh. Bespoke relaxation massage, hot stone therapy, royal Moroccan bath, and nail care in serene privacy.",
-    'site.keywords': 'luxury women spa riyadh, massage riyadh, women massage riyadh, relaxation massage riyadh, therapeutic massage riyadh, hot stone massage riyadh, moroccan bath riyadh, pedicure manicure riyadh, ALOR SPA Riyadh',
+    'site.title': "ALOR SPA | Best Women's Spa & Massage Center in Riyadh",
+    'site.description': "ALOR SPA is the premier luxury women's spa and massage center in Riyadh. Experience bespoke relaxation massage, hot stone therapy, royal Moroccan bath, and nail care in serene privacy.",
+    'site.keywords': "ALOR SPA Riyadh, Women Spa Riyadh, Massage Center Riyadh, Relaxing Massage Riyadh, Hot Stone Massage Riyadh, Moroccan Bath Riyadh, deep tissue massage riyadh, body sculpting riyadh, pedicure manicure riyadh, Alor Spa Riyadh, ALOR SPA",
 
     // Navigation
     'nav.home': 'Home',
