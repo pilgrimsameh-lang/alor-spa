@@ -13,11 +13,13 @@ export default defineConfig({
     port: 4321,
   },
   output: 'static',
+  session: false,
   adapter: cloudflare({
     platformProxy: {
       enabled: true,
     },
     prerenderEnvironment: 'node',
+    imageService: 'passthrough',
   }),
   i18n: {
     defaultLocale: 'ar',
