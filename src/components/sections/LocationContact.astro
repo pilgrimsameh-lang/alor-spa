@@ -1,0 +1,477 @@
+---
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+import { siteConfig, isWhatsAppConfigured, getWhatsAppDisplayNumber } from '../../config/site';
+import { servicesData } from '../../data/services';
+import WhatsAppButton from '../ui/WhatsAppButton.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const hasWhatsApp = isWhatsAppConfigured();
+---
+
+<section id="contact" class="py-24 sm:py-32 bg-ivory-50 relative overflow-hidden">
+  
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+    
+    <!-- Section Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="h-px w-6 bg-bronze-500"></span>
+        <span class="text-caption sm:text-body-sm font-semibold tracking-widest text-bronze-600 uppercase">
+          {t('location.eyebrow')}
+        </span>
+        <span class="h-px w-6 bg-bronze-500"></span>
+      </div>
+
+      <h2 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-chocolate-800 leading-tight mb-5">
+        {t('location.title')}
+      </h2>
+
+      <!-- Diamond divider -->
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <span class="h-px w-12 bg-bronze-400/40"></span>
+        <span class="h-1.5 w-1.5 rotate-45 bg-bronze-500"></span>
+        <span class="h-px w-12 bg-bronze-400/40"></span>
+      </div>
+
+      <p class="text-body sm:text-body-lg text-chocolate-600 leading-relaxed">
+        {t('location.subtitle')}
+      </p>
+    </div>
+
+    <!-- Main Two-Column Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-14 items-start">
+      
+      <!-- Left Column: Business Details & Map (6 cols on lg) -->
+      <div class="lg:col-span-6 space-y-6">
+        
+        <!-- Address Card -->
+        <div class="rounded-card bg-white p-6 sm:p-7 border border-champagne-200 shadow-soft flex items-start gap-4">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bronze-100 text-bronze-600">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+          </span>
+          <div>
+            <h3 class="font-heading text-lg font-bold text-chocolate-800 mb-1">
+              {t('location.addressTitle')}
+            </h3>
+            <p class="text-body-sm text-chocolate-600 leading-relaxed mb-2">
+              {siteConfig.address[lang]}
+            </p>
+            <span class="inline-block text-caption font-medium text-bronze-600 bg-champagne-100/70 px-2.5 py-0.5 rounded-pill">
+              {lang === 'ar' ? 'الرياض، المملكة العربية السعودية' : 'Riyadh, Saudi Arabia'}
+            </span>
+          </div>
+        </div>
+
+        <!-- Hours Card -->
+        <div class="rounded-card bg-white p-6 sm:p-7 border border-champagne-200 shadow-soft flex items-start gap-4">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bronze-100 text-bronze-600">
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </span>
+          <div>
+            <h3 class="font-heading text-lg font-bold text-chocolate-800 mb-1">
+              {t('location.hoursTitle')}
+            </h3>
+            <p class="text-body-sm text-chocolate-600 leading-relaxed mb-2">
+              {siteConfig.hours[lang]}
+            </p>
+            <p class="text-caption text-chocolate-400">
+              {t('location.contactNotice')}
+            </p>
+          </div>
+        </div>
+
+        <!-- WhatsApp & Phone Inquiries Card -->
+        <div class="rounded-card bg-white p-6 sm:p-7 border border-champagne-200 shadow-soft flex items-start gap-4">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-bronze-100 text-bronze-600">
+            <svg class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+          </span>
+          <div class="flex-1">
+            <h3 class="font-heading text-lg font-bold text-chocolate-800 mb-1">
+              {t('location.whatsappTitle')}
+            </h3>
+            {hasWhatsApp ? (
+              <p class="text-body-sm font-semibold text-bronze-600 mb-2 font-mono" dir="ltr">
+                {getWhatsAppDisplayNumber()}
+              </p>
+            ) : (
+              <p class="text-body-sm text-chocolate-500 mb-2">
+                {t('booking.unconfiguredNotice')}
+              </p>
+            )}
+            <WhatsAppButton variant="primary" size="sm" />
+          </div>
+        </div>
+
+        <!-- Stylized Map Placeholder -->
+        <div class="rounded-card overflow-hidden border border-champagne-200/90 shadow-soft bg-chocolate-900 relative aspect-[16/9]">
+          <!-- Simulated elegant dark map pattern -->
+          <div class="absolute inset-0 bg-pattern-dots opacity-20"></div>
+          <div class="absolute inset-0 bg-gradient-to-tr from-chocolate-950 via-chocolate-900/90 to-chocolate-800/80"></div>
+          
+          <div class="absolute inset-0 flex flex-col items-center justify-center p-6 text-center z-10">
+            <div class="flex h-14 w-14 items-center justify-center rounded-full bg-bronze-500 text-ivory-50 shadow-card mb-3">
+              <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+              </svg>
+            </div>
+            <h4 class="font-heading text-xl font-bold text-ivory-50 mb-1">
+              {lang === 'ar' ? 'ألور سبا — الرياض' : 'ALOR SPA — Riyadh'}
+            </h4>
+            <p class="text-caption text-champagne-200 max-w-sm mb-4">
+              {t('location.mapNotice')}
+            </p>
+            <span class="inline-flex items-center gap-1.5 text-[11px] font-mono font-medium text-bronze-400 bg-chocolate-950/80 px-3 py-1 rounded-pill border border-bronze-500/20">
+              24.7136° N, 46.6753° E · Riyadh
+            </span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Direct Booking / Inquiry Form (6 cols on lg) -->
+      <div class="lg:col-span-6">
+        <div class="rounded-3xl bg-white border border-champagne-200 p-8 sm:p-10 shadow-card">
+          
+          <h3 class="font-heading text-2xl sm:text-3xl font-bold text-chocolate-800 mb-2">
+            {t('location.formTitle')}
+          </h3>
+          <p class="text-body-sm text-chocolate-500 mb-8 leading-relaxed">
+            {t('location.formSubtitle')}
+          </p>
+
+          <div id="inquiry-success-box" class="hidden rounded-2xl bg-champagne-50/90 border border-bronze-300/80 p-8 text-center space-y-4 animate-fade-in shadow-card">
+            <div class="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-bronze-100 text-bronze-600 shadow-inner">
+              <svg class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+              </svg>
+            </div>
+            <h4 class="font-heading text-2xl font-bold text-chocolate-800" id="inquiry-success-title">
+              {lang === 'ar' ? 'شكراً لتواصلكِ مع ألور سبا 🌸' : 'Thank You for Choosing ALOR SPA 🌸'}
+            </h4>
+            <div class="inline-block bg-white/90 border border-bronze-400/40 rounded-xl px-5 py-2 shadow-xs">
+              <span class="text-caption text-chocolate-500 block mb-0.5">{lang === 'ar' ? 'الرقم المرجعي للطلب' : 'Booking Reference Number'}</span>
+              <span class="font-mono text-base font-bold text-bronze-700 tracking-wider" id="inquiry-booking-ref">ALOR-BK-2026-XXXX</span>
+            </div>
+            <p class="text-body-sm text-chocolate-600 max-w-md mx-auto leading-relaxed" id="inquiry-success-text">
+              {lang === 'ar'
+                ? 'تم استلام طلب حجزكِ بنجاح وبكل عناية. سيقوم فريق الاستقبال بالتواصل معكِ عبر الجوال أو الواتساب لتأكيد الموعد النهائي وتجهيز جناحكِ الخاص.'
+                : 'Your booking request has been received with care. Our concierge team will reach out via phone or WhatsApp to confirm your appointment and prepare your suite.'}
+            </p>
+            <div class="pt-3 flex flex-col sm:flex-row items-center justify-center gap-3">
+              <a
+                id="inquiry-whatsapp-direct"
+                href={`https://wa.me/966553543192?text=${encodeURIComponent(lang === 'ar' ? 'مرحباً ALOR SPA 🌸 لقد قمت بتقديم طلب حجز عبر الموقع.' : 'Hello ALOR SPA 🌸 I just submitted a booking request via your website.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="btn btn-primary px-6 py-2.5 text-body-sm shadow-sm"
+              >
+                {lang === 'ar' ? 'متابعة الحجز فوراً عبر واتساب' : 'Follow up via WhatsApp'}
+              </a>
+              <button
+                type="button"
+                id="inquiry-reset-btn"
+                class="text-body-sm text-chocolate-600 hover:text-bronze-600 underline cursor-pointer px-4 py-2"
+              >
+                {lang === 'ar' ? 'إرسال طلب حجز آخر' : 'Submit Another Request'}
+              </button>
+            </div>
+          </div>
+
+          <form
+            class="space-y-4"
+            id="inquiry-form"
+          >
+            <div id="booking-form-error" class="hidden p-3 rounded-xl bg-red-50 border border-red-200 text-red-700 text-xs font-medium"></div>
+
+            <!-- Full Name -->
+            <div>
+              <label for="client-name" class="field-label font-medium text-body-sm text-chocolate-700">
+                {t('location.formName')} <span class="text-bronze-500">*</span>
+              </label>
+              <input
+                type="text"
+                id="client-name"
+                name="name"
+                required
+                minlength="2"
+                maxlength="100"
+                placeholder={lang === 'ar' ? 'سارة الأحمد' : 'Sarah Al-Ahmad'}
+                class="field"
+              />
+            </div>
+
+            <!-- Phone Number -->
+            <div>
+              <label for="client-phone" class="field-label font-medium text-body-sm text-chocolate-700">
+                {t('location.formPhone')} <span class="text-bronze-500">*</span>
+              </label>
+              <input
+                type="tel"
+                id="client-phone"
+                name="phone"
+                required
+                dir="ltr"
+                placeholder="05XXXXXXXX"
+                class="field text-start"
+              />
+            </div>
+
+            <!-- Desired Treatment Selection -->
+            <div>
+              <label for="client-service" class="field-label font-medium text-body-sm text-chocolate-700">
+                {t('location.formService')} <span class="text-bronze-500">*</span>
+              </label>
+              <select id="client-service" name="service" required class="field">
+                <option value="">
+                  {lang === 'ar' ? '-- اختاري الخدمة المطلوبة --' : '-- Select desired treatment --'}
+                </option>
+                {servicesData.map((s) => (
+                  <option value={s.id} data-name-ar={s.title.ar} data-name-en={s.title.en}>{s.title[lang]}</option>
+                ))}
+              </select>
+            </div>
+
+            <!-- Preferred Date & Time (Two Columns on sm) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <!-- Preferred Date -->
+              <div>
+                <label for="client-date" class="field-label font-medium text-body-sm text-chocolate-700">
+                  {t('location.formDate')} <span class="text-bronze-500">*</span>
+                </label>
+                <input
+                  type="date"
+                  id="client-date"
+                  name="preferred_date"
+                  required
+                  class="field text-start"
+                />
+              </div>
+
+              <!-- Preferred Time (Operating Hours: 11:00 AM - 11:00 PM) -->
+              <div>
+                <label for="client-time" class="field-label font-medium text-body-sm text-chocolate-700">
+                  {t('location.formTime')} <span class="text-bronze-500">*</span>
+                </label>
+                <select id="client-time" name="preferred_time" required class="field">
+                  <option value="">
+                    {lang === 'ar' ? '-- اختاري الوقت --' : '-- Select Time --'}
+                  </option>
+                  <option value="11:00 AM">{lang === 'ar' ? '11:00 صباحًا' : '11:00 AM'}</option>
+                  <option value="12:00 PM">{lang === 'ar' ? '12:00 ظهرًا' : '12:00 PM'}</option>
+                  <option value="01:00 PM">{lang === 'ar' ? '01:00 ظهرًا' : '01:00 PM'}</option>
+                  <option value="02:00 PM">{lang === 'ar' ? '02:00 عصرًا' : '02:00 PM'}</option>
+                  <option value="03:00 PM">{lang === 'ar' ? '03:00 عصرًا' : '03:00 PM'}</option>
+                  <option value="04:00 PM">{lang === 'ar' ? '04:00 عصرًا' : '04:00 PM'}</option>
+                  <option value="05:00 PM">{lang === 'ar' ? '05:00 مساءً' : '05:00 PM'}</option>
+                  <option value="06:00 PM">{lang === 'ar' ? '06:00 مساءً' : '06:00 PM'}</option>
+                  <option value="07:00 PM">{lang === 'ar' ? '07:00 مساءً' : '07:00 PM'}</option>
+                  <option value="08:00 PM">{lang === 'ar' ? '08:00 مساءً' : '08:00 PM'}</option>
+                  <option value="09:00 PM">{lang === 'ar' ? '09:00 مساءً' : '09:00 PM'}</option>
+                  <option value="10:00 PM">{lang === 'ar' ? '10:00 مساءً' : '10:00 PM'}</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Message / Notes -->
+            <div>
+              <label for="client-message" class="field-label font-medium text-body-sm text-chocolate-700">
+                {t('location.formNotes')}
+              </label>
+              <textarea
+                id="client-message"
+                name="message"
+                rows="3"
+                maxlength="1000"
+                placeholder={lang === 'ar' ? 'أي تفاصيل خاصة أو تفضيلات ترغبين بها (اختياري)...' : 'Any special requests or preferences (optional)...'}
+                class="field"
+              ></textarea>
+            </div>
+
+            <!-- Submit Button -->
+            <button
+              type="submit"
+              id="booking-submit-btn"
+              class="btn btn-primary w-full py-4 text-body font-semibold cursor-pointer shadow-soft hover:shadow-card active:scale-[0.99] flex items-center justify-center gap-2"
+            >
+              <span id="booking-submit-label">{t('location.formSubmit')}</span>
+              <svg class="h-4 w-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
+              </svg>
+            </button>
+
+            <!-- Privacy Guarantee Note -->
+            <p class="text-caption text-center text-chocolate-400 pt-1">
+              {lang === 'ar'
+                ? 'ساعات العمل: 11:00 صباحًا – 11:00 مساءً · بياناتكِ في خصوصية تامة'
+                : 'Working Hours: 11:00 AM – 11:00 PM · Your details remain strictly confidential'}
+            </p>
+
+          </form>
+
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+</section>
+
+<script>
+  function setupInquiryForm() {
+    const form = document.getElementById('inquiry-form') as HTMLFormElement | null;
+    const successBox = document.getElementById('inquiry-success-box');
+    const resetBtn = document.getElementById('inquiry-reset-btn');
+    const directWa = document.getElementById('inquiry-whatsapp-direct') as HTMLAnchorElement | null;
+    const errorBox = document.getElementById('booking-form-error');
+    const submitBtn = document.getElementById('booking-submit-btn') as HTMLButtonElement | null;
+    const submitLabel = document.getElementById('booking-submit-label');
+    const successTitle = document.getElementById('inquiry-success-title');
+    const bookingRefEl = document.getElementById('inquiry-booking-ref');
+    const dateInput = document.getElementById('client-date') as HTMLInputElement | null;
+
+    if (!form || !successBox) return;
+
+    // Set min date to today
+    if (dateInput) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.min = today;
+      if (!dateInput.value) {
+        dateInput.value = today;
+      }
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (errorBox) {
+        errorBox.textContent = '';
+        errorBox.classList.add('hidden');
+      }
+
+      const formData = new FormData(form);
+      const name = (formData.get('name') as string)?.trim() || '';
+      const phone = (formData.get('phone') as string)?.trim() || '';
+      const serviceSelect = document.getElementById('client-service') as HTMLSelectElement | null;
+      const serviceId = serviceSelect?.value || null;
+      const serviceName = serviceSelect?.selectedOptions[0]?.text?.trim() || '';
+      const preferredDate = (formData.get('preferred_date') as string)?.trim() || '';
+      const preferredTime = (formData.get('preferred_time') as string)?.trim() || '';
+      const notes = (formData.get('message') as string)?.trim() || '';
+
+      const isAr = document.documentElement.lang !== 'en';
+
+      if (!name || name.length < 2) {
+        if (errorBox) {
+          errorBox.textContent = isAr ? 'يرجى كتابة الاسم بشكل صحيح (حرفين على الأقل)' : 'Please enter a valid name (at least 2 characters)';
+          errorBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (!phone || phone.length < 8) {
+        if (errorBox) {
+          errorBox.textContent = isAr ? 'يرجى إدخال رقم جوال صحيح' : 'Please enter a valid phone number';
+          errorBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (!serviceName || !serviceId) {
+        if (errorBox) {
+          errorBox.textContent = isAr ? 'يرجى اختيار الخدمة المطلوبة' : 'Please select a desired service';
+          errorBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (!preferredDate) {
+        if (errorBox) {
+          errorBox.textContent = isAr ? 'يرجى تحديد التاريخ المفضل' : 'Please select preferred date';
+          errorBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      if (!preferredTime) {
+        if (errorBox) {
+          errorBox.textContent = isAr ? 'يرجى تحديد الوقت المفضل' : 'Please select preferred time';
+          errorBox.classList.remove('hidden');
+        }
+        return;
+      }
+
+      // Disable button while sending
+      if (submitBtn) submitBtn.disabled = true;
+      if (submitLabel) submitLabel.textContent = isAr ? 'جاري إرسال الطلب...' : 'Submitting request...';
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            client_name: name,
+            client_phone: phone,
+            service_id: serviceId,
+            service_name: serviceName,
+            preferred_date: preferredDate,
+            preferred_time: preferredTime,
+            notes: notes || undefined,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || (isAr ? 'حدث خطأ أثناء إرسال الطلب' : 'Failed to submit booking request'));
+        }
+
+        // Show Success Box with Reference Number and Name
+        if (successTitle) {
+          successTitle.textContent = isAr ? `شكرًا لكِ أختنا ${name} 🌸` : `Thank You, ${name} 🌸`;
+        }
+        if (bookingRefEl) {
+          bookingRefEl.textContent = data.requestNumber;
+        }
+
+        // Update WhatsApp link with the booking info
+        if (directWa) {
+          const waMessage = isAr
+            ? `مرحبًا ALOR SPA 🌸\nأنا (${name})، قمت بتقديم طلب حجز برقم مرجعي: ${data.requestNumber}\nالخدمة: ${serviceName}\nالموعد: ${preferredDate} الساعة ${preferredTime}`
+            : `Hello ALOR SPA 🌸\nI am (${name}), I submitted booking ref: ${data.requestNumber}\nService: ${serviceName}\nPreferred: ${preferredDate} at ${preferredTime}`;
+          directWa.href = `https://wa.me/966553543192?text=${encodeURIComponent(waMessage)}`;
+        }
+
+        form.classList.add('hidden');
+        successBox.classList.remove('hidden');
+      } catch (err: any) {
+        if (errorBox) {
+          errorBox.textContent = err.message || (isAr ? 'تعذر إرسال الطلب، يرجى المحاولة مجدداً.' : 'Error sending request, please try again.');
+          errorBox.classList.remove('hidden');
+        }
+      } finally {
+        if (submitBtn) submitBtn.disabled = false;
+        if (submitLabel) submitLabel.textContent = isAr ? 'إرسال طلب الحجز' : 'Submit Booking Request';
+      }
+    });
+
+    resetBtn?.addEventListener('click', () => {
+      form.reset();
+      if (dateInput) {
+        dateInput.value = new Date().toISOString().split('T')[0];
+      }
+      successBox.classList.add('hidden');
+      form.classList.remove('hidden');
+    });
+  }
+
+  setupInquiryForm();
+  document.addEventListener('astro:after-swap', setupInquiryForm);
+</script>

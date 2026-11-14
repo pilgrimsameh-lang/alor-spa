@@ -1,0 +1,113 @@
+---
+interface Props {
+  title: string;
+  value: number | string;
+  subtitle?: string;
+  icon: string;
+  href?: string;
+  badge?: string;
+  lang?: 'ar' | 'en';
+}
+
+const {
+  title,
+  value,
+  subtitle,
+  icon,
+  href,
+  badge,
+  lang = 'ar',
+} = Astro.props;
+
+const isRtl = lang === 'ar';
+---
+
+<div class="relative group overflow-hidden rounded-2xl bg-[#1C130D]/80 border border-[#A87952]/25 hover:border-[#C5A880]/60 transition-all duration-300 p-6 flex flex-col justify-between backdrop-blur-md shadow-lg shadow-black/20">
+  <!-- Subtle luxury ambient corner glow -->
+  <div class="absolute -right-8 -top-8 w-24 h-24 rounded-full bg-[#A87952]/10 blur-xl group-hover:bg-[#C5A880]/20 transition-all duration-500 pointer-events-none"></div>
+
+  <div>
+    <div class="flex items-center justify-between mb-4">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-[#38251F] to-[#241814] border border-[#C5A880]/30 flex items-center justify-center text-[#C5A880] group-hover:border-[#C5A880]/70 group-hover:text-[#D8C4A3] transition-colors">
+        {icon === 'services' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+          </svg>
+        )}
+        {icon === 'categories' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+          </svg>
+        )}
+        {icon === 'offers' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+          </svg>
+        )}
+        {icon === 'gallery' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+          </svg>
+        )}
+        {icon === 'reviews' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+          </svg>
+        )}
+        {icon === 'blog' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+          </svg>
+        )}
+        {icon === 'users' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+        )}
+        {icon === 'media' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+          </svg>
+        )}
+        {icon === 'settings' && (
+          <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+        )}
+      </div>
+
+      {badge && (
+        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-[#A87952]/15 text-[#C5A880] border border-[#C5A880]/20">
+          {badge}
+        </span>
+      )}
+    </div>
+
+    <span class="text-xs uppercase tracking-wider text-[#D8C4A3]/70 font-light block mb-1">
+      {title}
+    </span>
+    <div class="flex items-baseline gap-2">
+      <span class="text-3xl sm:text-4xl font-bold font-['Playfair_Display',serif] text-[#FAF7F2] tracking-tight">
+        {value}
+      </span>
+    </div>
+
+    {subtitle && (
+      <p class="text-xs text-[#D8C4A3]/60 mt-2 font-light leading-relaxed">
+        {subtitle}
+      </p>
+    )}
+  </div>
+
+  {href && (
+    <div class="mt-4 pt-3 border-t border-[#A87952]/15 flex items-center justify-between text-xs text-[#C5A880] hover:text-[#FAF7F2] transition-colors">
+      <a href={href} class="inline-flex items-center gap-1 font-medium group/link">
+        <span>{isRtl ? 'عرض التفاصيل' : 'View Details'}</span>
+        <svg class={`w-3.5 h-3.5 transition-transform ${isRtl ? 'rotate-180 group-hover/link:-translate-x-1' : 'group-hover/link:translate-x-1'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  )}
+</div>

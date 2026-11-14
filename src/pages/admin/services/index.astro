@@ -1,0 +1,483 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import MediaPickerModal from '../../../components/admin/MediaPickerModal.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+
+const [servicesRes, categoriesRes] = await Promise.all([
+  client.execute(`
+    SELECT 
+      s.*,
+      c.title_ar as category_title_ar,
+      c.title_en as category_title_en,
+      m.public_url as image_url,
+      m.original_name as image_name
+    FROM services s
+    LEFT JOIN service_categories c ON s.category_id = c.id
+    LEFT JOIN media_files m ON s.featured_image_id = m.id
+    ORDER BY s.display_order ASC;
+  `),
+  client.execute('SELECT id, title_ar, title_en FROM service_categories ORDER BY display_order ASC;'),
+]);
+
+const servicesList = servicesRes.rows;
+const categoriesList = categoriesRes.rows;
+---
+
+<AdminLayout title={isRtl ? 'إدارة الخدمات' : 'Services Management'} requiredPermission="services:read">
+  <!-- Section Header & Add Action -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'إدارة الخدمات والأسعار' : 'Spa Services Management'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'إضافة وتعديل وحذف خدمات السبا المعتمدة بالهللات والمواصفات ثنائية اللغة' : 'Create, update, and manage official spa treatments and pricing'}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+        <span class="text-[#C5A880] font-bold" id="services-count-badge">{servicesList.length}</span>
+        <span>{isRtl ? 'خدمات مسجلة' : 'Services'}</span>
+      </span>
+
+      <button
+        type="button"
+        id="open-add-service-btn"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] transition-all shadow-md shadow-[#A87952]/20 cursor-pointer"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>{isRtl ? 'إضافة خدمة جديدة' : 'Add New Service'}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Alert -->
+  <div id="service-toast" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span id="service-toast-icon"></span>
+      <span id="service-toast-msg" class="text-xs font-medium"></span>
+    </div>
+    <button type="button" onclick="document.getElementById('service-toast').classList.add('hidden')" class="text-xs opacity-70 hover:opacity-100">✕</button>
+  </div>
+
+  <!-- Services Table -->
+  <div class="rounded-2xl border border-[#A87952]/20 bg-[#1C130D]/70 overflow-hidden shadow-xl backdrop-blur-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-start border-collapse" id="services-table">
+        <thead>
+          <tr class="border-b border-[#A87952]/20 bg-[#140D09]/80 text-[#D8C4A3]/70 text-[11px] uppercase tracking-wider font-semibold">
+            <th class="py-4 px-6 text-start">{isRtl ? 'اسم الخدمة' : 'Service Title'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'التصنيف' : 'Category'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'المدة' : 'Duration'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'السعر' : 'Pricing'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الميزة' : 'Type'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الحالة' : 'Status'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الإجراءات' : 'Actions'}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#A87952]/10 text-xs" id="services-tbody">
+          {servicesList.map((service) => (
+            <tr class="hover:bg-[#241814]/60 transition-colors" data-service-id={service.id}>
+              <td class="py-4 px-6">
+                <div class="flex items-center gap-3">
+                  {service.image_url ? (
+                    <img src={service.image_url as string} alt={service.title_ar as string} class="w-10 h-10 rounded-lg object-cover border border-[#A87952]/30 shrink-0 bg-black/40" />
+                  ) : (
+                    <div class="w-10 h-10 rounded-lg bg-[#140D09] border border-[#A87952]/20 flex items-center justify-center text-[#D8C4A3]/30 shrink-0">
+                      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  )}
+                  <div>
+                    <div class="font-semibold text-[#FAF7F2]">
+                      {isRtl ? service.title_ar : service.title_en}
+                    </div>
+                    <div class="text-[11px] text-[#D8C4A3]/50 font-mono">
+                      {service.slug}
+                    </div>
+                  </div>
+                </div>
+              </td>
+              <td class="py-4 px-6 text-[#D8C4A3]">
+                {isRtl ? service.category_title_ar : service.category_title_en}
+              </td>
+              <td class="py-4 px-6 text-[#D8C4A3]/80">
+                {isRtl ? service.duration_display_ar : service.duration_display_en}
+              </td>
+              <td class="py-4 px-6 text-[#C5A880] font-medium">
+                {isRtl ? service.price_display_ar : service.price_display_en}
+              </td>
+              <td class="py-4 px-6 text-center">
+                {Number(service.is_signature) === 1 ? (
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#A87952]/20 text-[#C5A880] border border-[#C5A880]/30">
+                    {isRtl ? 'خدمة مميزة' : 'Signature'}
+                  </span>
+                ) : (
+                  <span class="text-[#D8C4A3]/40 text-[11px]">—</span>
+                )}
+              </td>
+              <td class="py-4 px-6 text-center">
+                {Number(service.is_published) === 1 ? (
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>{isRtl ? 'منشور' : 'Published'}</span>
+                  </span>
+                ) : (
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span>{isRtl ? 'مسودة' : 'Draft'}</span>
+                  </span>
+                )}
+              </td>
+              <td class="py-4 px-6 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    class="edit-service-btn p-1.5 rounded-lg text-[#C5A880] hover:bg-[#38251F] hover:text-[#FAF7F2] transition-colors cursor-pointer"
+                    title={isRtl ? 'تعديل الخدمة' : 'Edit Service'}
+                    data-json={JSON.stringify(service)}
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="delete-service-btn p-1.5 rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors cursor-pointer"
+                    title={isRtl ? 'حذف الخدمة' : 'Delete Service'}
+                    data-id={service.id}
+                    data-name={isRtl ? service.title_ar : service.title_en}
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Service Add / Edit Modal -->
+  <div id="service-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8">
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <h3 id="service-modal-title" class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+          {isRtl ? 'إضافة خدمة جديدة' : 'Add New Service'}
+        </h3>
+        <button type="button" id="close-service-modal-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+
+      <form id="service-form" class="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
+        <input type="hidden" id="service-form-id" name="id" />
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'اسم الخدمة (عربي) *' : 'Service Title (Arabic) *'}</label>
+            <input type="text" id="service-title-ar" name="title_ar" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'اسم الخدمة (إنجليزي) *' : 'Service Title (English) *'}</label>
+            <input type="text" id="service-title-en" name="title_en" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الرابط الفريد (Slug) *' : 'Slug *'}</label>
+            <input type="text" id="service-slug" name="slug" required placeholder="relaxation-massage" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] font-mono focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'التصنيف *' : 'Category *'}</label>
+            <select id="service-category" name="category_id" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none">
+              {categoriesList.map((c) => (
+                <option value={c.id}>{isRtl ? c.title_ar : c.title_en}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'السعر (بالهللات: 100 هللة = 1 ريال)' : 'Price in Halalas'}</label>
+            <input type="number" id="service-price-halalas" name="price_amount_halalas" placeholder="35000" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] font-mono focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'نص السعر المعروض (عربي)' : 'Price Display (Arabic)'}</label>
+            <input type="text" id="service-price-display-ar" name="price_display_ar" value="الأسعار عند الاستفسار" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'المدة (بالدقائق)' : 'Duration (Minutes)'}</label>
+            <input type="number" id="service-duration-minutes" name="duration_minutes" placeholder="60" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] font-mono focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'نص المدة المعروض (عربي)' : 'Duration Display (Arabic)'}</label>
+            <input type="text" id="service-duration-display-ar" name="duration_display_ar" value="تحدد عند الحجز" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <MediaPickerModal
+            id="service-featured-image-picker"
+            name="featured_image_id"
+            label={isRtl ? 'صورة الخدمة البارزة (Media Asset)' : 'Featured Service Image'}
+            lang={lang}
+          />
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الوصف (عربي) *' : 'Description (Arabic) *'}</label>
+          <textarea id="service-desc-ar" name="description_ar" rows="3" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الوصف (إنجليزي) *' : 'Description (English) *'}</label>
+          <textarea id="service-desc-en" name="description_en" rows="3" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+          <label class="flex items-center gap-2 text-xs text-[#FAF7F2] cursor-pointer">
+            <input type="checkbox" id="service-is-signature" name="is_signature" class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+            <span>{isRtl ? 'خدمة مميزة (Signature)' : 'Signature Service'}</span>
+          </label>
+          <label class="flex items-center gap-2 text-xs text-[#FAF7F2] cursor-pointer">
+            <input type="checkbox" id="service-is-published" name="is_published" checked class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+            <span>{isRtl ? 'منشور في الموقع' : 'Published'}</span>
+          </label>
+          <div>
+            <label class="block text-[11px] text-[#D8C4A3] mb-0.5">{isRtl ? 'ترتيب الظهور' : 'Display Order'}</label>
+            <input type="number" id="service-display-order" name="display_order" value="0" class="w-20 px-2 py-1 rounded-lg bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2]" />
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-service-modal-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </button>
+          <button type="submit" id="save-service-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] cursor-pointer shadow-md">
+            {isRtl ? 'حفظ البيانات' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="service-delete-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-[#FAF7F2] mb-2 font-['Amiri',serif]">
+        {isRtl ? 'تأكيد حذف الخدمة' : 'Confirm Service Deletion'}
+      </h3>
+      <p class="text-xs text-[#D8C4A3]/80 mb-6 leading-relaxed">
+        {isRtl ? 'هل أنت متأكد من رغبتك في حذف خدمة' : 'Are you sure you want to delete'}
+        <span id="delete-service-name" class="font-bold text-[#FAF7F2]"></span>؟
+        {isRtl ? 'هذا الإجراء سيقوم بحذف الخدمة بشكل نهائي.' : 'This action cannot be undone.'}
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" id="cancel-service-delete-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+          {isRtl ? 'إلغاء' : 'Cancel'}
+        </button>
+        <button type="button" id="confirm-service-delete-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-md">
+          {isRtl ? 'نعم، حذف الخدمة' : 'Yes, Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Client-side CRUD Scripts -->
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('service-modal');
+      const deleteModal = document.getElementById('service-delete-modal');
+      const form = document.getElementById('service-form');
+      const toast = document.getElementById('service-toast');
+      const toastMsg = document.getElementById('service-toast-msg');
+      const toastIcon = document.getElementById('service-toast-icon');
+
+      function showToast(message, isSuccess = true) {
+        toast.className = `fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between ${
+          isSuccess ? 'bg-[#142617] border-emerald-500/50 text-emerald-200' : 'bg-[#2b1111] border-red-500/50 text-red-200'
+        }`;
+        toastIcon.textContent = isSuccess ? '✓' : '✗';
+        toastMsg.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+      }
+
+      // Open Add Modal
+      document.getElementById('open-add-service-btn')?.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('service-form-id').value = '';
+        document.getElementById('service-modal-title').textContent = 'إضافة خدمة جديدة';
+        const picker = document.getElementById('service-featured-image-picker');
+        if (picker && typeof picker.setSelectedMedia === 'function') {
+          picker.setSelectedMedia('', '', '');
+        }
+        modal.classList.remove('hidden');
+      });
+
+      // Close Modal
+      document.getElementById('close-service-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+      document.getElementById('cancel-service-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+
+      // Open Edit Modal
+      document.querySelectorAll('.edit-service-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const service = JSON.parse(btn.getAttribute('data-json') || '{}');
+          document.getElementById('service-form-id').value = service.id || '';
+          document.getElementById('service-title-ar').value = service.title_ar || '';
+          document.getElementById('service-title-en').value = service.title_en || '';
+          document.getElementById('service-slug').value = service.slug || '';
+          document.getElementById('service-category').value = service.category_id || '';
+          document.getElementById('service-price-halalas').value = service.price_amount_halalas ?? '';
+          document.getElementById('service-price-display-ar').value = service.price_display_ar || 'الأسعار عند الاستفسار';
+          document.getElementById('service-duration-minutes').value = service.duration_minutes ?? '';
+          document.getElementById('service-duration-display-ar').value = service.duration_display_ar || 'تحدد عند الحجز';
+          document.getElementById('service-desc-ar').value = service.description_ar || '';
+          document.getElementById('service-desc-en').value = service.description_en || '';
+          document.getElementById('service-is-signature').checked = Number(service.is_signature) === 1;
+          document.getElementById('service-is-published').checked = Number(service.is_published) === 1;
+          document.getElementById('service-display-order').value = service.display_order ?? 0;
+          document.getElementById('service-modal-title').textContent = 'تعديل الخدمة: ' + (service.title_ar || service.id);
+
+          const picker = document.getElementById('service-featured-image-picker');
+          if (picker && typeof picker.setSelectedMedia === 'function') {
+            picker.setSelectedMedia(service.featured_image_id, service.image_url, service.image_name);
+          }
+
+          modal.classList.remove('hidden');
+        });
+      });
+
+      // Submit Add/Edit Form
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('service-form-id').value.trim();
+        const isEdit = Boolean(id);
+
+        const payload = {
+          title_ar: document.getElementById('service-title-ar').value.trim(),
+          title_en: document.getElementById('service-title-en').value.trim(),
+          slug: document.getElementById('service-slug').value.trim(),
+          category_id: document.getElementById('service-category').value,
+          featured_image_id: document.getElementById('service-featured-image-picker-value')?.value || null,
+          price_amount_halalas: document.getElementById('service-price-halalas').value ? Number(document.getElementById('service-price-halalas').value) : null,
+          price_display_ar: document.getElementById('service-price-display-ar').value.trim() || 'الأسعار عند الاستفسار',
+          price_display_en: 'Price on inquiry',
+          duration_minutes: document.getElementById('service-duration-minutes').value ? Number(document.getElementById('service-duration-minutes').value) : null,
+          duration_display_ar: document.getElementById('service-duration-display-ar').value.trim() || 'تحدد عند الحجز',
+          duration_display_en: 'Confirmed upon booking',
+          description_ar: document.getElementById('service-desc-ar').value.trim(),
+          description_en: document.getElementById('service-desc-en').value.trim(),
+          is_signature: document.getElementById('service-is-signature').checked ? 1 : 0,
+          is_published: document.getElementById('service-is-published').checked ? 1 : 0,
+          display_order: Number(document.getElementById('service-display-order').value) || 0,
+        };
+
+        const saveBtn = document.getElementById('save-service-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'جاري الحفظ...';
+
+        try {
+          const endpoint = isEdit ? `/api/admin/services/${encodeURIComponent(id)}` : '/api/admin/services';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const res = await fetch(endpoint, {
+            method,
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Alor-Admin-Action': '1',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'فشلت العملية');
+          }
+
+          showToast(data.message || 'تم الحفظ بنجاح', true);
+          modal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'حفظ البيانات';
+        }
+      });
+
+      // Delete Handling
+      let targetDeleteId = null;
+      document.querySelectorAll('.delete-service-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          targetDeleteId = btn.getAttribute('data-id');
+          document.getElementById('delete-service-name').textContent = btn.getAttribute('data-name') || targetDeleteId;
+          deleteModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('cancel-service-delete-btn')?.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+        targetDeleteId = null;
+      });
+
+      document.getElementById('confirm-service-delete-btn')?.addEventListener('click', async () => {
+        if (!targetDeleteId) return;
+        const confirmBtn = document.getElementById('confirm-service-delete-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'جاري الحذف...';
+
+        try {
+          const res = await fetch(`/api/admin/services/${encodeURIComponent(targetDeleteId)}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Alor-Admin-Action': '1',
+            },
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) {
+            throw new Error(data.error || 'فشل الحذف');
+          }
+
+          showToast('تم حذف الخدمة بنجاح', true);
+          deleteModal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'نعم، حذف الخدمة';
+        }
+      });
+    });
+  </script>
+</AdminLayout>

@@ -1,0 +1,362 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const categoriesRes = await client.execute(`
+  SELECT 
+    c.*,
+    (SELECT COUNT(*) FROM services WHERE category_id = c.id) as services_count
+  FROM service_categories c
+  ORDER BY c.display_order ASC;
+`);
+
+const categories = categoriesRes.rows;
+---
+
+<AdminLayout title={isRtl ? 'إدارة التصنيفات' : 'Categories Management'} requiredPermission="services:read">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'تصنيفات الخدمات' : 'Service Categories'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'إضافة وتعديل وهيكلة تصنيفات خدمات السبا مع الحماية الآمنة للعلاقات' : 'Manage service taxonomy with strict referential safety'}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+        <span class="text-[#C5A880] font-bold">{categories.length}</span>
+        <span>{isRtl ? 'تصنيفات رئيسية' : 'Categories'}</span>
+      </span>
+
+      <button
+        type="button"
+        id="open-add-cat-btn"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] transition-all shadow-md shadow-[#A87952]/20 cursor-pointer"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>{isRtl ? 'إضافة تصنيف جديد' : 'Add Category'}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="cat-toast" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span id="cat-toast-icon"></span>
+      <span id="cat-toast-msg" class="text-xs font-medium"></span>
+    </div>
+    <button type="button" onclick="document.getElementById('cat-toast').classList.add('hidden')" class="text-xs opacity-70 hover:opacity-100">✕</button>
+  </div>
+
+  <!-- Table -->
+  <div class="rounded-2xl border border-[#A87952]/20 bg-[#1C130D]/70 overflow-hidden shadow-xl backdrop-blur-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-start border-collapse">
+        <thead>
+          <tr class="border-b border-[#A87952]/20 bg-[#140D09]/80 text-[#D8C4A3]/70 text-[11px] uppercase tracking-wider font-semibold">
+            <th class="py-4 px-6 text-start">{isRtl ? 'التصنيف (عربي)' : 'Title (Arabic)'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'التصنيف (إنجليزي)' : 'Title (English)'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'المعرف الفريد (Slug)' : 'Slug ID'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'عدد الخدمات' : 'Services Count'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الترتيب' : 'Order'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الحالة' : 'Status'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الإجراءات' : 'Actions'}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#A87952]/10 text-xs">
+          {categories.map((cat) => (
+            <tr class="hover:bg-[#241814]/60 transition-colors" data-cat-id={cat.id}>
+              <td class="py-4 px-6 font-semibold text-[#FAF7F2]">
+                {cat.title_ar}
+              </td>
+              <td class="py-4 px-6 text-[#D8C4A3]">
+                {cat.title_en}
+              </td>
+              <td class="py-4 px-6 text-[#D8C4A3]/60 font-mono text-[11px]">
+                {cat.slug}
+              </td>
+              <td class="py-4 px-6 text-center">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-[#38251F] text-[#C5A880] border border-[#C5A880]/30 font-mono">
+                  {cat.services_count}
+                </span>
+              </td>
+              <td class="py-4 px-6 text-center font-mono text-[#D8C4A3]/70">
+                #{cat.display_order}
+              </td>
+              <td class="py-4 px-6 text-center">
+                {Number(cat.is_active) === 1 ? (
+                  <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                    <span>{isRtl ? 'نشط' : 'Active'}</span>
+                  </span>
+                ) : (
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                    <span>{isRtl ? 'معطل' : 'Inactive'}</span>
+                  </span>
+                )}
+              </td>
+              <td class="py-4 px-6 text-center">
+                <div class="flex items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    class="edit-cat-btn p-1.5 rounded-lg text-[#C5A880] hover:bg-[#38251F] hover:text-[#FAF7F2] transition-colors cursor-pointer"
+                    title={isRtl ? 'تعديل التصنيف' : 'Edit Category'}
+                    data-json={JSON.stringify(cat)}
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    class="delete-cat-btn p-1.5 rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors cursor-pointer"
+                    title={isRtl ? 'حذف التصنيف' : 'Delete Category'}
+                    data-id={cat.id}
+                    data-name={isRtl ? cat.title_ar : cat.title_en}
+                    data-services-count={cat.services_count}
+                  >
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div id="cat-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <h3 id="cat-modal-title" class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+          {isRtl ? 'إضافة تصنيف جديد' : 'Add New Category'}
+        </h3>
+        <button type="button" id="close-cat-modal-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+
+      <form id="cat-form" class="p-6 space-y-4">
+        <input type="hidden" id="cat-form-id" name="id" />
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'عنوان التصنيف (عربي) *' : 'Title (Arabic) *'}</label>
+          <input type="text" id="cat-title-ar" name="title_ar" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'عنوان التصنيف (إنجليزي) *' : 'Title (English) *'}</label>
+          <input type="text" id="cat-title-en" name="title_en" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الرابط الفريد (Slug) *' : 'Slug *'}</label>
+            <input type="text" id="cat-slug" name="slug" required placeholder="massage" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] font-mono focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'ترتيب الظهور' : 'Display Order'}</label>
+            <input type="number" id="cat-display-order" name="display_order" value="0" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <label class="flex items-center gap-2 text-xs text-[#FAF7F2] cursor-pointer">
+            <input type="checkbox" id="cat-is-active" name="is_active" checked class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+            <span>{isRtl ? 'تصنيف نشط في الموقع' : 'Active Category'}</span>
+          </label>
+        </div>
+
+        <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-cat-modal-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </button>
+          <button type="submit" id="save-cat-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] cursor-pointer shadow-md">
+            {isRtl ? 'حفظ البيانات' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="cat-delete-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-[#FAF7F2] mb-2 font-['Amiri',serif]">
+        {isRtl ? 'تأكيد حذف التصنيف' : 'Confirm Category Deletion'}
+      </h3>
+      <p class="text-xs text-[#D8C4A3]/80 mb-6 leading-relaxed" id="cat-delete-msg"></p>
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" id="cancel-cat-delete-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+          {isRtl ? 'إلغاء' : 'Cancel'}
+        </button>
+        <button type="button" id="confirm-cat-delete-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-md">
+          {isRtl ? 'نعم، حذف التصنيف' : 'Yes, Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('cat-modal');
+      const deleteModal = document.getElementById('cat-delete-modal');
+      const form = document.getElementById('cat-form');
+      const toast = document.getElementById('cat-toast');
+      const toastMsg = document.getElementById('cat-toast-msg');
+      const toastIcon = document.getElementById('cat-toast-icon');
+
+      function showToast(message, isSuccess = true) {
+        toast.className = `fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between ${
+          isSuccess ? 'bg-[#142617] border-emerald-500/50 text-emerald-200' : 'bg-[#2b1111] border-red-500/50 text-red-200'
+        }`;
+        toastIcon.textContent = isSuccess ? '✓' : '✗';
+        toastMsg.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+      }
+
+      document.getElementById('open-add-cat-btn')?.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('cat-form-id').value = '';
+        document.getElementById('cat-modal-title').textContent = 'إضافة تصنيف جديد';
+        modal.classList.remove('hidden');
+      });
+
+      document.getElementById('close-cat-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+      document.getElementById('cancel-cat-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+
+      document.querySelectorAll('.edit-cat-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const cat = JSON.parse(btn.getAttribute('data-json') || '{}');
+          document.getElementById('cat-form-id').value = cat.id || '';
+          document.getElementById('cat-title-ar').value = cat.title_ar || '';
+          document.getElementById('cat-title-en').value = cat.title_en || '';
+          document.getElementById('cat-slug').value = cat.slug || '';
+          document.getElementById('cat-display-order').value = cat.display_order ?? 0;
+          document.getElementById('cat-is-active').checked = Number(cat.is_active) === 1;
+          document.getElementById('cat-modal-title').textContent = 'تعديل التصنيف: ' + (cat.title_ar || cat.id);
+          modal.classList.remove('hidden');
+        });
+      });
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('cat-form-id').value.trim();
+        const isEdit = Boolean(id);
+
+        const payload = {
+          title_ar: document.getElementById('cat-title-ar').value.trim(),
+          title_en: document.getElementById('cat-title-en').value.trim(),
+          slug: document.getElementById('cat-slug').value.trim(),
+          display_order: Number(document.getElementById('cat-display-order').value) || 0,
+          is_active: document.getElementById('cat-is-active').checked ? 1 : 0,
+        };
+
+        const saveBtn = document.getElementById('save-cat-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'جاري الحفظ...';
+
+        try {
+          const endpoint = isEdit ? `/api/admin/categories/${encodeURIComponent(id)}` : '/api/admin/categories';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const res = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشلت العملية');
+
+          showToast(data.message || 'تم الحفظ بنجاح', true);
+          modal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'حفظ البيانات';
+        }
+      });
+
+      let targetCatId = null;
+      document.querySelectorAll('.delete-cat-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          targetCatId = btn.getAttribute('data-id');
+          const name = btn.getAttribute('data-name');
+          const count = Number(btn.getAttribute('data-services-count')) || 0;
+          const msgEl = document.getElementById('cat-delete-msg');
+          const confirmBtn = document.getElementById('confirm-cat-delete-btn');
+
+          if (count > 0) {
+            msgEl.innerHTML = `<span class="text-amber-400 font-bold block mb-2">تنبيه أمان:</span> لا يمكن حذف تصنيف <strong>${name}</strong> لأنه مرتبط بـ (${count}) من الخدمات. يرجى نقل أو حذف الخدمات أولاً.`;
+            confirmBtn.disabled = true;
+            confirmBtn.classList.add('opacity-40', 'cursor-not-allowed');
+          } else {
+            msgEl.innerHTML = `هل أنت متأكد من حذف تصنيف <strong>${name}</strong>؟ هذا الإجراء لا يمكن التراجع عنه.`;
+            confirmBtn.disabled = false;
+            confirmBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+          }
+
+          deleteModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('cancel-cat-delete-btn')?.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+        targetCatId = null;
+      });
+
+      document.getElementById('confirm-cat-delete-btn')?.addEventListener('click', async () => {
+        if (!targetCatId) return;
+        const confirmBtn = document.getElementById('confirm-cat-delete-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'جاري الحذف...';
+
+        try {
+          const res = await fetch(`/api/admin/categories/${encodeURIComponent(targetCatId)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشل الحذف');
+
+          showToast('تم حذف التصنيف بنجاح', true);
+          deleteModal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'نعم، حذف التصنيف';
+        }
+      });
+    });
+  </script>
+</AdminLayout>

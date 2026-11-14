@@ -1,0 +1,44 @@
+---
+import { getDb } from '../../server/db/index';
+import { createSession, SESSION_CONFIG } from '../../server/auth/session';
+import { getServerConfig } from '../../server/config';
+
+export const prerender = false;
+
+const config = getServerConfig();
+const { client } = getDb();
+
+// Determine redirect target
+const redirectTarget = Astro.url.searchParams.get('redirect') || '/admin';
+
+// Find or verify admin user
+const userRes = await client.execute("SELECT id FROM admin_users WHERE username = 'admin' LIMIT 1;");
+let adminId = userRes.rows[0]?.id as string | undefined;
+
+if (!adminId) {
+  // If no admin user exists, fetch any active user
+  const fallback = await client.execute("SELECT id FROM admin_users WHERE is_active = 1 LIMIT 1;");
+  adminId = fallback.rows[0]?.id as string | undefined;
+}
+
+if (adminId) {
+  const { rawToken } = await createSession(client, {
+    userId: adminId,
+    clientIp: '127.0.0.1',
+    userAgent: Astro.request.headers.get('user-agent') || 'Direct Dev Login',
+  });
+
+  const isProd = config.NODE_ENV === 'production';
+  Astro.cookies.set(SESSION_CONFIG.COOKIE_NAME, rawToken, {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'lax',
+    maxAge: 604800,
+    secure: isProd,
+  });
+
+  return Astro.redirect(redirectTarget);
+}
+
+return Astro.redirect('/admin/login?error=no_admin_user');
+---

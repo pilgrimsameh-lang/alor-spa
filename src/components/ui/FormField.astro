@@ -1,0 +1,106 @@
+---
+interface SelectOption {
+  label: string;
+  value: string;
+}
+
+interface Props {
+  label?: string;
+  id: string;
+  name?: string;
+  type?: 'text' | 'email' | 'tel' | 'number' | 'textarea' | 'select';
+  placeholder?: string;
+  required?: boolean;
+  error?: string;
+  helperText?: string;
+  options?: SelectOption[];
+  class?: string;
+  rows?: number;
+  [key: string]: any;
+}
+
+const {
+  label,
+  id,
+  name = id,
+  type = 'text',
+  placeholder,
+  required = false,
+  error,
+  helperText,
+  options = [],
+  class: className = '',
+  rows = 4,
+  ...rest
+} = Astro.props;
+
+const fieldClasses = ['field', error ? 'field-error' : '', className].filter(Boolean).join(' ');
+---
+
+<div class="field-group">
+  {label && (
+    <label for={id} class="field-label">
+      {label}
+      {required && <span class="text-bronze-500 ms-1" aria-hidden="true">*</span>}
+    </label>
+  )}
+
+  {
+    type === 'textarea' ? (
+      <textarea
+        id={id}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        rows={rows}
+        class={fieldClasses}
+        aria-invalid={error ? 'true' : 'false'}
+        aria-describedby={error ? `${id}-error` : helperText ? `${id}-helper` : undefined}
+        {...rest}
+      />
+    ) : type === 'select' ? (
+      <select
+        id={id}
+        name={name}
+        required={required}
+        class={fieldClasses}
+        aria-invalid={error ? 'true' : 'false'}
+        aria-describedby={error ? `${id}-error` : helperText ? `${id}-helper` : undefined}
+        {...rest}
+      >
+        {placeholder && (
+          <option value="" disabled selected>
+            {placeholder}
+          </option>
+        )}
+        {options.map((option) => (
+          <option value={option.value}>{option.label}</option>
+        ))}
+      </select>
+    ) : (
+      <input
+        type={type}
+        id={id}
+        name={name}
+        placeholder={placeholder}
+        required={required}
+        class={fieldClasses}
+        aria-invalid={error ? 'true' : 'false'}
+        aria-describedby={error ? `${id}-error` : helperText ? `${id}-helper` : undefined}
+        {...rest}
+      />
+    )
+  }
+
+  {error && (
+    <p id={`${id}-error`} class="field-error-text" role="alert">
+      {error}
+    </p>
+  )}
+
+  {!error && helperText && (
+    <p id={`${id}-helper`} class="mt-1 text-caption text-chocolate-400">
+      {helperText}
+    </p>
+  )}
+</div>

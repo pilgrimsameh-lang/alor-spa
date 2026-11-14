@@ -1,0 +1,188 @@
+---
+import { getLangFromUrl, useTranslations, getLocalizedPath } from '../../i18n/utils';
+import { siteConfig } from '../../config/site';
+import { servicesData } from '../../data/services';
+import LanguageSwitcher from '../ui/LanguageSwitcher.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+const currentYear = 2026;
+
+const pathname = Astro.url.pathname;
+const isHome = pathname === '/' || pathname === '/en' || pathname === '/en/';
+const homeBase = isHome ? '' : getLocalizedPath('/', lang);
+---
+
+<footer class="bg-chocolate-950 text-ivory-100 border-t border-champagne-300/15 relative overflow-hidden" role="contentinfo">
+  
+  <!-- Subtle ambient decorative glow -->
+  <div class="absolute -top-32 start-1/2 -translate-x-1/2 w-96 h-96 bg-bronze-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-20 pb-28 sm:pb-12 relative z-10">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 lg:gap-8 pb-16 border-b border-champagne-300/15">
+      
+      <!-- Brand Column (4 cols) -->
+      <div class="lg:col-span-4 space-y-6">
+        <a
+          href={getLocalizedPath('/', lang)}
+          class="inline-block group focus:outline-none"
+          aria-label="ALOR SPA"
+        >
+          <span class="font-heading text-3xl font-semibold tracking-[0.2em] text-ivory-50 uppercase transition-colors group-hover:text-bronze-300">
+            ALOR<span class="text-bronze-400 ms-1 font-light">SPA</span>
+          </span>
+          <span class="block text-[10px] uppercase tracking-[0.3em] text-champagne-300/80 mt-1 font-medium">
+            {lang === 'ar' ? 'سبا ومساج نسائي فاخر · الرياض' : "Luxury Women's Sanctuary · Riyadh"}
+          </span>
+        </a>
+
+        <p class="text-body-sm text-ivory-300/85 leading-relaxed max-w-sm">
+          {t('footer.aboutText')}
+        </p>
+
+        <!-- Social Media Icons -->
+        <div class="pt-2">
+          <p class="text-caption font-semibold tracking-wider text-bronze-400 uppercase mb-3">
+            {t('location.socialTitle')}
+          </p>
+          <div class="flex items-center gap-3">
+            <!-- Instagram -->
+            {siteConfig.social.instagram && (
+              <a
+                href={siteConfig.social.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-chocolate-900 border border-champagne-300/20 text-ivory-200 transition-all hover:bg-bronze-500 hover:text-ivory-50 hover:border-bronze-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze-400"
+                aria-label={lang === 'ar' ? 'حساب إنستغرام ألور سبا الرسمي (@alor_homspa)' : 'Official ALOR SPA Instagram Profile (@alor_homspa)'}
+                title={lang === 'ar' ? 'إنستغرام ألور سبا (@alor_homspa)' : 'ALOR SPA Instagram (@alor_homspa)'}
+              >
+                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                </svg>
+              </a>
+            )}
+
+            <!-- TikTok -->
+            {siteConfig.social.tiktok && (
+              <a
+                href={siteConfig.social.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex h-10 w-10 items-center justify-center rounded-full bg-chocolate-900 border border-champagne-300/20 text-ivory-200 transition-all hover:bg-bronze-500 hover:text-ivory-50 hover:border-bronze-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze-400"
+                aria-label={lang === 'ar' ? 'حساب تيك توك ألور سبا الرسمي (@alor_homspa)' : 'Official ALOR SPA TikTok Profile (@alor_homspa)'}
+                title={lang === 'ar' ? 'تيك توك ألور سبا (@alor_homspa)' : 'ALOR SPA TikTok (@alor_homspa)'}
+              >
+                <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.24 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/>
+                </svg>
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Navigation (2 cols) -->
+      <div class="lg:col-span-2 space-y-4">
+        <h4 class="font-heading text-body font-bold text-ivory-50">
+          {t('footer.quickLinks')}
+        </h4>
+        <ul class="space-y-2.5 text-body-sm text-ivory-300">
+          <li>
+            <a href={isHome ? '#hero' : getLocalizedPath('/', lang)} class="transition-colors hover:text-bronze-300">{t('nav.home')}</a>
+          </li>
+          <li>
+            <a href={`${homeBase}#about`} class="transition-colors hover:text-bronze-300">{t('nav.about')}</a>
+          </li>
+          <li>
+            <a href={getLocalizedPath('/services', lang)} class="transition-colors hover:text-bronze-300">{t('nav.services')}</a>
+          </li>
+          <li>
+            <a href={`${homeBase}#offers`} class="transition-colors hover:text-bronze-300">{t('nav.offers')}</a>
+          </li>
+          <li>
+            <a href={`${homeBase}#gallery`} class="transition-colors hover:text-bronze-300">{t('nav.gallery')}</a>
+          </li>
+          <li>
+            <a href={`${homeBase}#testimonials`} class="transition-colors hover:text-bronze-300">{t('nav.testimonials')}</a>
+          </li>
+          <li>
+            <a href={`${homeBase}#contact`} class="transition-colors hover:text-bronze-300">{t('nav.contact')}</a>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Services List (3 cols) -->
+      <div class="lg:col-span-3 space-y-4">
+        <h4 class="font-heading text-body font-bold text-ivory-50">
+          {t('footer.servicesTitle')}
+        </h4>
+        <ul class="space-y-2.5 text-body-sm text-ivory-300">
+          {servicesData.map((s) => (
+            <li>
+              <a href={getLocalizedPath(`/services/${s.slug}`, lang)} class="transition-colors hover:text-bronze-300">
+                {s.title[lang]}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <!-- Contact & Hours (3 cols) -->
+      <div class="lg:col-span-3 space-y-4">
+        <h4 class="font-heading text-body font-bold text-ivory-50">
+          {t('footer.contactTitle')}
+        </h4>
+        
+        <div class="space-y-3 text-body-sm text-ivory-300">
+          <p class="flex items-start gap-2">
+            <svg class="h-4 w-4 text-bronze-400 mt-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M15 10.5a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1115 0z" />
+            </svg>
+            <span>{siteConfig.city[lang]}</span>
+          </p>
+
+          <p class="flex items-start gap-2">
+            <svg class="h-4 w-4 text-bronze-400 mt-1 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{siteConfig.hours[lang]}</span>
+          </p>
+
+          <div class="pt-3">
+            <LanguageSwitcher variant="footer" />
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-caption text-ivory-300/70">
+      <p>{t('footer.rights')} · {currentYear}</p>
+      
+      <div class="flex items-center gap-6">
+        <a href={`${homeBase}#contact`} class="hover:text-bronze-300 transition-colors">
+          {t('footer.privacy')}
+        </a>
+        <span class="h-3 w-px bg-champagne-300/30"></span>
+        <a href={`${homeBase}#contact`} class="hover:text-bronze-300 transition-colors">
+          {t('footer.terms')}
+        </a>
+      </div>
+
+      <!-- Back to top button -->
+      <a
+        href={isHome ? '#hero' : '#main-content'}
+        class="inline-flex items-center gap-1.5 hover:text-bronze-300 transition-colors"
+        aria-label={lang === 'ar' ? 'أعلى الصفحة' : 'Back to top'}
+      >
+        <span>{lang === 'ar' ? 'أعلى الصفحة' : 'Back to top'}</span>
+        <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" />
+        </svg>
+      </a>
+    </div>
+
+  </div>
+</footer>

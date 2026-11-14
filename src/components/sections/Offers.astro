@@ -1,0 +1,314 @@
+---
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+import { activeOffers } from '../../data/offers';
+import { standardPackages, specialPackages } from '../../data/packages';
+import WhatsAppButton from '../ui/WhatsAppButton.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+---
+
+<section id="offers" class="py-24 sm:py-32 bg-chocolate-950 text-ivory-100 relative overflow-hidden">
+  
+  <!-- Subtle warm ambient lighting glow -->
+  <div class="absolute -top-40 end-0 h-[30rem] w-[30rem] rounded-full bg-bronze-500/10 blur-3xl pointer-events-none"></div>
+  <div class="absolute -bottom-40 start-0 h-[30rem] w-[30rem] rounded-full bg-rosegold-500/10 blur-3xl pointer-events-none"></div>
+
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 relative z-10">
+    
+    <!-- Main Section Header -->
+    <div class="text-center max-w-3xl mx-auto mb-16 sm:mb-20">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="h-px w-6 bg-bronze-400"></span>
+        <span class="text-caption sm:text-body-sm font-semibold tracking-widest text-bronze-300 uppercase">
+          {t('offers.eyebrow')}
+        </span>
+        <span class="h-px w-6 bg-bronze-400"></span>
+      </div>
+
+      <h2 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-ivory-50 leading-tight mb-5">
+        {t('offers.title')}
+      </h2>
+
+      <!-- Diamond divider -->
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <span class="h-px w-12 bg-bronze-400/40"></span>
+        <span class="h-1.5 w-1.5 rotate-45 bg-bronze-400"></span>
+        <span class="h-px w-12 bg-bronze-400/40"></span>
+      </div>
+
+      <p class="text-body sm:text-body-lg text-ivory-300 leading-relaxed">
+        {t('offers.subtitle')}
+      </p>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 1. ACTIVE OFFERS (العروض الحصرية) -->
+    <!-- ==================================================================== -->
+    <div class="mb-20">
+      <div class="flex items-center gap-3 mb-8">
+        <span class="h-6 w-1 rounded-full bg-bronze-400"></span>
+        <h3 class="font-heading text-2xl sm:text-3xl font-bold text-ivory-100">
+          {lang === 'ar' ? 'عروض ALOR SPA الحصرية' : 'ALOR SPA Exclusive Offers'}
+        </h3>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {activeOffers.map((offer) => (
+          <div class="group rounded-card bg-chocolate-900/90 border border-bronze-500/30 p-7 flex flex-col justify-between transition-all duration-300 hover:border-bronze-400 hover:shadow-elevated">
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-4">
+                {offer.badge && (
+                  <span class="inline-block px-3 py-1 rounded-pill bg-bronze-500 text-ivory-50 text-[11px] font-semibold">
+                    {offer.badge[lang]}
+                  </span>
+                )}
+                {offer.duration && (
+                  <span class="text-caption text-champagne-300 flex items-center gap-1">
+                    <svg class="h-3.5 w-3.5 text-bronze-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {offer.duration.display[lang]}
+                  </span>
+                )}
+              </div>
+
+              <h4 class="font-heading text-xl sm:text-2xl font-bold text-ivory-50 mb-2">
+                {offer.title[lang]}
+              </h4>
+              <p class="text-body-sm text-champagne-300 mb-3">{offer.subtitle[lang]}</p>
+              <p class="text-body-sm text-ivory-300 leading-relaxed mb-6">{offer.description[lang]}</p>
+
+              <!-- Components List -->
+              <div class="mb-6 pt-4 border-t border-bronze-500/20">
+                <p class="text-[11px] font-semibold text-champagne-300 uppercase tracking-wider mb-2">
+                  {lang === 'ar' ? 'مكونات العرض:' : 'Offer Inclusions:'}
+                </p>
+                <ul class="space-y-2">
+                  {offer.includes[lang].map((item) => (
+                    <li class="flex items-center gap-2 text-body-sm text-ivory-200">
+                      <span class="h-1.5 w-1.5 rounded-full bg-bronze-400 shrink-0"></span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <!-- Price & Booking -->
+            <div class="pt-4 border-t border-bronze-500/20">
+              <div class="flex items-baseline justify-between mb-4">
+                <span class="text-caption text-ivory-400">{lang === 'ar' ? 'السعر الشامل:' : 'Total Price:'}</span>
+                <span class="font-heading text-2xl font-bold text-champagne-200">
+                  {offer.price.display[lang]}
+                </span>
+              </div>
+              <WhatsAppButton
+                serviceName={offer.title[lang]}
+                variant="primary"
+                label={t('common.bookNow')}
+                class="w-full justify-center"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 2. STANDARD PACKAGES (البكجات المتكاملة) -->
+    <!-- ==================================================================== -->
+    <div class="mb-20">
+      <div class="flex items-center gap-3 mb-8">
+        <span class="h-6 w-1 rounded-full bg-rosegold-400"></span>
+        <div>
+          <h3 class="font-heading text-2xl sm:text-3xl font-bold text-ivory-100">
+            {t('packages.standardTitle')}
+          </h3>
+          <p class="text-caption sm:text-body-sm text-champagne-300/80 mt-1">
+            {t('packages.standardSubtitle')}
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {standardPackages.map((pkg) => (
+          <div class="rounded-card bg-chocolate-900/80 border border-bronze-500/30 p-7 flex flex-col justify-between transition-all duration-300 hover:border-bronze-400 hover:shadow-elevated">
+            <div>
+              {pkg.badge && (
+                <span class="inline-block px-3 py-1 rounded-pill bg-rosegold-500 text-ivory-50 text-[11px] font-semibold mb-4">
+                  {pkg.badge[lang]}
+                </span>
+              )}
+
+              <h4 class="font-heading text-xl sm:text-2xl font-bold text-ivory-50 mb-2">
+                {pkg.title[lang]}
+              </h4>
+              {pkg.subtitle && (
+                <p class="text-body-sm text-champagne-300 mb-3">{pkg.subtitle[lang]}</p>
+              )}
+              <p class="text-body-sm text-ivory-300 leading-relaxed mb-6">{pkg.description[lang]}</p>
+
+              <!-- Services included -->
+              <div class="mb-6 pt-4 border-t border-bronze-500/20">
+                <p class="text-[11px] font-semibold text-champagne-300 uppercase tracking-wider mb-2">
+                  {lang === 'ar' ? 'الخدمات الداخلة في البكج:' : 'Included Treatments:'}
+                </p>
+                <ul class="space-y-2">
+                  {pkg.includes[lang].map((item) => (
+                    <li class="flex items-center gap-2 text-body-sm text-ivory-200">
+                      <span class="h-1.5 w-1.5 rounded-full bg-rosegold-400 shrink-0"></span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <!-- Price & CTA -->
+            <div class="pt-4 border-t border-bronze-500/20">
+              <div class="flex items-baseline justify-between mb-4">
+                <span class="text-caption text-ivory-400">{lang === 'ar' ? 'السعر الإجمالي:' : 'Total Price:'}</span>
+                <span class="font-heading text-2xl font-bold text-champagne-200">
+                  {pkg.priceDisplay[lang]}
+                </span>
+              </div>
+              <WhatsAppButton
+                serviceName={pkg.title[lang]}
+                variant="primary"
+                label={lang === 'ar' ? 'حجز البكج' : 'Book Package'}
+                class="w-full justify-center"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- 3. SPECIAL PACKAGES (الباقات الخاصة وتجارب المناسبات) -->
+    <!-- ==================================================================== -->
+    <div>
+      <div class="flex items-center gap-3 mb-8">
+        <span class="h-6 w-1 rounded-full bg-bronze-300"></span>
+        <div>
+          <h3 class="font-heading text-2xl sm:text-3xl font-bold text-ivory-100">
+            {t('packages.specialTitle')}
+          </h3>
+          <p class="text-caption sm:text-body-sm text-champagne-300/80 mt-1">
+            {t('packages.specialSubtitle')}
+          </p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {specialPackages.map((pkg) => (
+          <div class:list={[
+            "rounded-card border p-8 flex flex-col justify-between transition-all duration-300 hover:shadow-elevated",
+            pkg.slug === 'special-friends-package' 
+              ? "bg-gradient-to-br from-chocolate-900 to-chocolate-950 border-rosegold-500/40 md:col-span-2" 
+              : "bg-chocolate-900/90 border-bronze-500/30"
+          ]}>
+            <div>
+              <div class="flex items-center justify-between gap-2 mb-4">
+                {pkg.badge && (
+                  <span class="inline-block px-3 py-1 rounded-pill bg-bronze-500 text-ivory-50 text-[11px] font-semibold">
+                    {pkg.badge[lang]}
+                  </span>
+                )}
+                {pkg.slug === 'special-friends-package' && (
+                  <span class="rounded-pill bg-rosegold-500/20 text-rosegold-300 border border-rosegold-500/30 px-3 py-1 text-caption font-semibold">
+                    {lang === 'ar' ? '3 خيارات منفصلة' : '3 Distinct Options'}
+                  </span>
+                )}
+              </div>
+
+              <h4 class="font-heading text-2xl sm:text-3xl font-bold text-ivory-50 mb-2">
+                {pkg.title[lang]}
+              </h4>
+              {pkg.subtitle && (
+                <p class="text-body-sm text-champagne-300 mb-3">{pkg.subtitle[lang]}</p>
+              )}
+              <p class="text-body-sm text-ivory-300 leading-relaxed mb-6">{pkg.description[lang]}</p>
+
+              <!-- Components -->
+              <div class="mb-6 pt-4 border-t border-bronze-500/20">
+                <p class="text-[11px] font-semibold text-champagne-300 uppercase tracking-wider mb-2">
+                  {lang === 'ar' ? 'محتويات الباقة:' : 'Package Components:'}
+                </p>
+                <div class="flex flex-wrap gap-2">
+                  {pkg.includes[lang].map((item) => (
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-pill bg-chocolate-950/70 border border-bronze-500/30 text-caption text-ivory-200">
+                      <span class="h-1.5 w-1.5 rounded-full bg-bronze-400"></span>
+                      {item}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              <!-- Special Case: Friends Package with 3 Distinct Options -->
+              {pkg.options && pkg.options.length > 0 && (
+                <div class="my-6 p-4 sm:p-5 rounded-2xl bg-chocolate-950/80 border border-rosegold-500/30">
+                  <p class="text-body-sm font-semibold text-rosegold-300 mb-3">
+                    {lang === 'ar' ? 'اختاري الخيار المناسب لكِ ولصديقتكِ (الأسعار مستقلة لكل خيار دون دمج):' : 'Select Your Preferred Option (Individual Rates):'}
+                  </p>
+                  
+                  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {pkg.options.map((opt) => (
+                      <div class="rounded-xl bg-chocolate-900/90 border border-bronze-500/30 p-4 flex flex-col justify-between">
+                        <div>
+                          <h5 class="font-heading text-body font-bold text-ivory-100 mb-1">
+                            {opt.title[lang]}
+                          </h5>
+                          {opt.description && (
+                            <p class="text-[12px] text-ivory-300 leading-relaxed mb-3">
+                              {opt.description[lang]}
+                            </p>
+                          )}
+                        </div>
+                        <div class="pt-3 border-t border-bronze-500/20">
+                          <div class="flex items-center justify-between mb-2">
+                            <span class="text-[11px] text-ivory-400">{lang === 'ar' ? 'السعر:' : 'Price:'}</span>
+                            <span class="font-heading text-body font-bold text-champagne-200">
+                              {opt.price.display[lang]}
+                            </span>
+                          </div>
+                          <WhatsAppButton
+                            serviceName={`${lang === 'ar' ? 'باقة الصديقات - ' : 'Friends Package - '}${opt.title[lang]}`}
+                            variant="primary"
+                            size="sm"
+                            label={lang === 'ar' ? 'حجز هذا الخيار' : 'Book Option'}
+                            class="w-full justify-center !text-caption !py-1.5"
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <!-- Total Price & CTA (For non-friends or main card) -->
+            {pkg.slug !== 'special-friends-package' && (
+              <div class="pt-4 border-t border-bronze-500/20">
+                <div class="flex items-baseline justify-between mb-4">
+                  <span class="text-caption text-ivory-400">{lang === 'ar' ? 'السعر الإجمالي:' : 'Total Price:'}</span>
+                  <span class="font-heading text-3xl font-bold text-champagne-200">
+                    {pkg.priceDisplay[lang]}
+                  </span>
+                </div>
+                <WhatsAppButton
+                  serviceName={pkg.title[lang]}
+                  variant="primary"
+                  label={lang === 'ar' ? 'حجز الباقة الخاصة' : 'Book Special Experience'}
+                  class="w-full justify-center"
+                />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+
+  </div>
+</section>

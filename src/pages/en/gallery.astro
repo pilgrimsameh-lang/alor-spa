@@ -1,0 +1,68 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import Header from '../../components/layout/Header.astro';
+import Footer from '../../components/layout/Footer.astro';
+import Gallery from '../../components/sections/Gallery.astro';
+import BackToHomeButton from '../../components/ui/BackToHomeButton.astro';
+import WhatsAppButton from '../../components/ui/WhatsAppButton.astro';
+import { useTranslations } from '../../i18n/utils';
+
+const t = useTranslations('en');
+
+const seoTitle = 'Luxury Sanctuary Gallery | ALOR SPA Women Only Riyadh';
+const seoDescription = 'Explore ALOR SPA Riyadh sanctuary through imagery: tranquil massage suites, luxury therapy beds, Moroccan bath rituals, and warm ambient serenity.';
+
+const siteUrl = Astro.site?.toString() || 'https://alorspa.com';
+
+const breadcrumbSchema = {
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: `${siteUrl.replace(/\/$/, '')}/en/`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Gallery',
+      item: `${siteUrl.replace(/\/$/, '')}/en/gallery`,
+    },
+  ],
+};
+---
+
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  canonicalPath="/en/gallery"
+  alternatePath="/gallery"
+  structuredData={[breadcrumbSchema]}
+>
+  <Header />
+
+  <main id="main-content" class="pt-24 sm:pt-28">
+    <!-- Back to Home Navigation Bar -->
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
+      <BackToHomeButton />
+    </div>
+
+    <!-- Sanctuary Gallery Section -->
+    <Gallery />
+  </main>
+
+  <Footer />
+
+  <!-- Mobile Floating Quick-Booking Bar -->
+  <aside class="fixed bottom-4 inset-x-4 z-30 sm:hidden" aria-label="Quick Booking">
+    <div class="rounded-pill p-1 bg-chocolate-950/90 backdrop-blur-md border border-bronze-500/40 shadow-elevated">
+      <WhatsAppButton
+        variant="primary"
+        size="md"
+        label={t('common.bookViaWhatsApp')}
+        class="w-full justify-center !py-3 shadow-none text-body-sm font-semibold"
+      />
+    </div>
+  </aside>
+</Layout>

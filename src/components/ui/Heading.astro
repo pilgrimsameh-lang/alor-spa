@@ -1,0 +1,33 @@
+---
+interface Props {
+  level?: 1 | 2 | 3 | 4 | 5 | 6;
+  size?: 'display' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+  class?: string;
+  [key: string]: any;
+}
+
+const {
+  level = 2,
+  size,
+  class: className = '',
+  ...rest
+} = Astro.props;
+
+const Tag = `h${level}` as any;
+
+const sizeMap: Record<string, string> = {
+  display: 'text-h1 md:text-display',
+  h1: 'text-h1',
+  h2: 'text-h2',
+  h3: 'text-h3',
+  h4: 'text-h4',
+  h5: 'text-h5',
+  h6: 'text-body-lg',
+};
+
+const resolvedSizeClass = size ? sizeMap[size] : '';
+---
+
+<Tag class:list={[resolvedSizeClass, className]} {...rest}>
+  <slot />
+</Tag>

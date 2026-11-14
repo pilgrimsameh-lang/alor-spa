@@ -1,0 +1,25 @@
+---
+interface Props {
+  as?: string;
+  variant?: 'default' | 'elevated' | 'dark';
+  class?: string;
+  [key: string]: any;
+}
+
+const {
+  as: Component = 'div',
+  variant = 'default',
+  class: className = '',
+  ...rest
+} = Astro.props;
+
+const variantClasses = {
+  default: 'card',
+  elevated: 'card card-elevated',
+  dark: 'card card-dark',
+};
+---
+
+<Component class:list={[variantClasses[variant], className]} {...rest}>
+  <slot />
+</Component>

@@ -1,0 +1,110 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const usersRes = await client.execute(`
+  SELECT 
+    u.id,
+    u.username,
+    u.email,
+    u.full_name,
+    u.is_active,
+    u.security_generation,
+    u.last_login_at,
+    u.created_at,
+    r.name_ar as role_name_ar,
+    r.name_en as role_name_en,
+    r.slug as role_slug
+  FROM admin_users u
+  LEFT JOIN admin_roles r ON u.role_id = r.id
+  ORDER BY u.created_at ASC;
+`);
+
+const adminUsersList = usersRes.rows;
+---
+
+<AdminLayout title={isRtl ? 'إدارة المستخدمين' : 'Admin Users'} requiredPermission="users:read">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'مدراء النظام المعتمدين' : 'System Administrators'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'إدارة حسابات الفريق الإداري ومراقبة أجيال الأمان والجلسات' : 'Manage administrative accounts, monitor security generations and active access'}
+      </p>
+    </div>
+
+    <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+      <span class="text-[#C5A880] font-bold">{adminUsersList.length}</span>
+      <span>{isRtl ? 'حسابات نشطة' : 'Active Accounts'}</span>
+    </span>
+  </div>
+
+  <div class="rounded-2xl border border-[#A87952]/20 bg-[#1C130D]/70 overflow-hidden shadow-xl backdrop-blur-sm">
+    <div class="overflow-x-auto">
+      <table class="w-full text-start border-collapse">
+        <thead>
+          <tr class="border-b border-[#A87952]/20 bg-[#140D09]/80 text-[#D8C4A3]/70 text-[11px] uppercase tracking-wider font-semibold">
+            <th class="py-4 px-6 text-start">{isRtl ? 'المستخدم' : 'User'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'البريد الإلكتروني' : 'Email'}</th>
+            <th class="py-4 px-6 text-start">{isRtl ? 'الدور الوظيفي' : 'Role'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'جيل الأمان' : 'Security Gen'}</th>
+            <th class="py-4 px-6 text-center">{isRtl ? 'الحالة' : 'Status'}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-[#A87952]/10 text-xs">
+          {adminUsersList.length === 0 ? (
+            <tr>
+              <td colspan="5" class="py-8 text-center text-[#D8C4A3]/60">
+                {isRtl ? 'لا يوجد مستخدمين مسجلين في قاعدة البيانات الحالية.' : 'No users currently registered in the database.'}
+              </td>
+            </tr>
+          ) : (
+            adminUsersList.map((u) => (
+              <tr class="hover:bg-[#241814]/60 transition-colors">
+                <td class="py-4 px-6">
+                  <div class="font-semibold text-[#FAF7F2]">{u.full_name}</div>
+                  <div class="text-[11px] text-[#D8C4A3]/50 font-mono">@{u.username}</div>
+                </td>
+                <td class="py-4 px-6 text-[#D8C4A3] font-mono text-[11px]">
+                  {u.email}
+                </td>
+                <td class="py-4 px-6">
+                  <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-semibold bg-[#38251F] text-[#C5A880] border border-[#C5A880]/30">
+                    {isRtl ? u.role_name_ar : u.role_name_en}
+                  </span>
+                </td>
+                <td class="py-4 px-6 text-center font-mono text-[#D8C4A3]/80">
+                  Gen #{u.security_generation}
+                </td>
+                <td class="py-4 px-6 text-center">
+                  {Number(u.is_active) === 1 ? (
+                    <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                      <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      <span>{isRtl ? 'نشط' : 'Active'}</span>
+                    </span>
+                  ) : (
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                      <span>{isRtl ? 'معطل' : 'Disabled'}</span>
+                    </span>
+                  )}
+                </td>
+              </tr>
+            ))
+          )}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</AdminLayout>

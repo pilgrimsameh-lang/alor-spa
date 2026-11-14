@@ -1,0 +1,97 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const rolesRes = await client.execute(`
+  SELECT 
+    r.id,
+    r.slug,
+    r.name_ar,
+    r.name_en,
+    r.description,
+    r.permissions,
+    (SELECT COUNT(*) FROM admin_users WHERE role_id = r.id) as users_count
+  FROM admin_roles r
+  ORDER BY r.created_at ASC;
+`);
+
+const rolesList = rolesRes.rows.map((row) => ({
+  ...row,
+  permissionsArray: typeof row.permissions === 'string' ? JSON.parse(row.permissions) : (row.permissions as string[] || []),
+}));
+---
+
+<AdminLayout title={isRtl ? 'الأدوار والصلاحيات' : 'Roles & Permissions'} requiredPermission="roles:read">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'الأدوار والصلاحيات (RBAC)' : 'Roles & Privileges Matrix'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'مصفوفة التحكم في الوصول المبنية على الأدوار وحماية الصلاحيات المطبقة في الخادم' : 'Role-Based Access Control matrix verified strictly at the server boundary'}
+      </p>
+    </div>
+
+    <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+      <span class="text-[#C5A880] font-bold">{rolesList.length}</span>
+      <span>{isRtl ? 'أدوار معتمدة' : 'Defined Roles'}</span>
+    </span>
+  </div>
+
+  <div class="grid grid-cols-1 gap-6">
+    {rolesList.map((role) => (
+      <div class="rounded-2xl border border-[#A87952]/25 bg-[#1C130D]/80 p-6 shadow-xl backdrop-blur-sm">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#38251F] to-[#241814] border border-[#C5A880]/30 flex items-center justify-center text-[#C5A880]">
+              <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <div>
+              <h3 class="text-base font-bold font-['Amiri',serif] text-[#FAF7F2]">
+                {isRtl ? role.name_ar : role.name_en}
+              </h3>
+              <span class="text-[11px] font-mono text-[#C5A880]">
+                {role.slug}
+              </span>
+            </div>
+          </div>
+
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-[#140D09] border border-[#A87952]/30 text-[#D8C4A3]">
+            <span>{isRtl ? 'المستخدمين المرتبطين:' : 'Assigned Users:'}</span>
+            <span class="text-[#C5A880] font-mono">{role.users_count}</span>
+          </span>
+        </div>
+
+        <p class="text-xs text-[#D8C4A3]/70 font-light mb-4 leading-relaxed">
+          {role.description}
+        </p>
+
+        <div>
+          <span class="text-[10px] uppercase tracking-wider text-[#D8C4A3]/60 block mb-2 font-semibold">
+            {isRtl ? 'الصلاحيات الممنوحة (Permissions):' : 'Granted Privileges:'}
+          </span>
+          <div class="flex flex-wrap gap-1.5">
+            {role.permissionsArray.map((perm: string) => (
+              <span class="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-[#140D09]/80 border border-[#A87952]/20 text-[#FAF7F2]">
+                {perm === '*' ? (isRtl ? '★ كامل صلاحيات النظام (*)' : '★ Universal Root (*)') : perm}
+              </span>
+            ))}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+</AdminLayout>

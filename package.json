@@ -1,0 +1,43 @@
+{
+  "name": "alor-spa",
+  "type": "module",
+  "version": "0.0.1",
+  "engines": {
+    "node": ">=22.23.4"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
+    "admin:create": "tsx scripts/create-super-admin.ts",
+    "astro": "astro",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "tsx src/server/db/migrate.ts",
+    "db:seed": "tsx src/server/db/seed.ts",
+    "db:studio": "drizzle-kit studio",
+    "test:db": "tsx test-milestone2.ts",
+    "test:seo": "tsx test-milestone6-phase1.ts",
+    "test:m7": "tsx scripts/test-milestone7-admin-crud.ts",
+    "audit": "tsx scripts/check-data-purity.ts && tsx scripts/scan-en-arabic-leaks.ts && tsx scripts/check-cls-images.ts && tsx scripts/check-all-links.ts",
+    "test": "tsx test-milestone4-phase4.ts && tsx test-milestone4-phase5.ts && tsx test-milestone5-phase1.ts && tsx test-milestone5-phase2.ts && tsx test-milestone6-phase1.ts && tsx scripts/test-milestone7-admin-crud.ts && tsx scripts/test-social-and-back-nav.ts && tsx scripts/test-new-features.ts",
+    "test:m5": "tsx test-milestone5-phase1.ts && tsx test-milestone5-phase2.ts",
+    "test:phase5": "tsx test-milestone4-phase5.ts",
+    "test:all": "tsx test-milestone4-phase1.ts && tsx test-milestone4-phase4.ts && tsx test-milestone4-phase5.ts && tsx test-milestone5-phase1.ts"
+  },
+  "dependencies": {
+    "@astrojs/node": "^11.1.9",
+    "@libsql/client": "^0.18.0",
+    "@node-rs/argon2": "2.2.2",
+    "@tailwindcss/vite": "^4.3.4",
+    "astro": "^7.4.5",
+    "drizzle-orm": "^0.45.4",
+    "ipaddr.js": "^2.5.0",
+    "tailwindcss": "^4.3.4",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.23.15"
+  }
+}

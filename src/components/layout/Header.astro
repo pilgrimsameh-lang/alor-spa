@@ -1,0 +1,190 @@
+---
+import { getLangFromUrl, useTranslations, getLocalizedPath } from '../../i18n/utils';
+import LanguageSwitcher from '../ui/LanguageSwitcher.astro';
+import WhatsAppButton from '../ui/WhatsAppButton.astro';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const pathname = Astro.url.pathname;
+const isHome = pathname === '/' || pathname === '/en' || pathname === '/en/';
+const homeBase = isHome ? '' : getLocalizedPath('/', lang);
+
+const navLinks = [
+  { href: `${homeBase}#about`, label: t('nav.about') },
+  { href: isHome ? '#services' : getLocalizedPath('/services', lang), label: t('nav.services') },
+  { href: `${homeBase}#offers`, label: t('nav.offers') },
+  { href: `${homeBase}#gallery`, label: t('nav.gallery') },
+  { href: `${homeBase}#contact`, label: t('nav.contact') },
+];
+---
+
+<header
+  id="site-header"
+  class="fixed top-0 inset-x-0 z-50 transition-all duration-300 bg-chocolate-950/90 backdrop-blur-md border-b border-champagne-300/10 text-ivory-100"
+>
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    <div class="flex h-20 items-center justify-between gap-4">
+      
+      <!-- Brand Logo / Wordmark -->
+      <a
+        href={getLocalizedPath('/', lang)}
+        class="group flex flex-col items-start focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bronze-400 rounded-sm"
+        aria-label="ALOR SPA - Home"
+      >
+        <span class="font-heading text-2xl sm:text-3xl font-semibold tracking-[0.2em] text-ivory-50 uppercase transition-colors group-hover:text-bronze-300">
+          ALOR<span class="text-bronze-400 ms-1 font-light">SPA</span>
+        </span>
+        <span class="text-[9px] uppercase tracking-[0.3em] text-champagne-300/80 -mt-1 font-medium">
+          {lang === 'ar' ? 'الرياض · للسيدات' : 'RIYADH · WOMEN ONLY'}
+        </span>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="hidden md:flex items-center gap-7 lg:gap-9" aria-label="Main Navigation">
+        {navLinks.map((link) => (
+          <a
+            href={link.href}
+            class="text-body-sm font-medium text-ivory-200/90 transition-colors duration-200 hover:text-bronze-300 focus-visible:outline-none focus-visible:text-bronze-400"
+          >
+            {link.label}
+          </a>
+        ))}
+      </nav>
+
+      <!-- Desktop Actions (Language Switcher + Booking CTA) -->
+      <div class="hidden md:flex items-center gap-4">
+        <LanguageSwitcher variant="nav" />
+        <WhatsAppButton variant="primary" size="sm" />
+      </div>
+
+      <!-- Mobile Menu Trigger -->
+      <div class="flex items-center gap-3 md:hidden">
+        <LanguageSwitcher variant="nav" class="!px-2.5 !py-1 text-caption" />
+        <button
+          type="button"
+          id="mobile-menu-toggle"
+          class="inline-flex items-center justify-center p-2 rounded-lg text-ivory-200 hover:text-bronze-300 hover:bg-chocolate-800/60 focus:outline-none focus:ring-2 focus:ring-bronze-400"
+          aria-expanded="false"
+          aria-controls="mobile-nav"
+          aria-label={t('nav.menu')}
+        >
+          <!-- Hamburger Icon -->
+          <svg
+            id="icon-hamburger"
+            class="h-6 w-6 block"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.75"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5M3.75 17.25h16.5" />
+          </svg>
+          <!-- Close Icon -->
+          <svg
+            id="icon-close"
+            class="h-6 w-6 hidden"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.75"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Mobile Navigation Drawer Overlay -->
+  <div
+    id="mobile-nav-backdrop"
+    class="fixed inset-0 top-20 bg-chocolate-950/80 backdrop-blur-sm opacity-0 pointer-events-none transition-opacity duration-300 z-40 md:hidden"
+    aria-hidden="true"
+  ></div>
+
+  <!-- Mobile Drawer Menu -->
+  <div
+    id="mobile-nav"
+    class="fixed top-20 inset-x-0 bg-chocolate-900 border-b border-champagne-300/15 p-6 shadow-2xl transition-all duration-300 ease-in-out transform -translate-y-full opacity-0 pointer-events-none z-50 md:hidden max-h-[calc(100vh-5rem)] overflow-y-auto"
+    aria-label="Mobile Navigation"
+  >
+    <nav class="flex flex-col gap-4">
+      {navLinks.map((link) => (
+        <a
+          href={link.href}
+          class="mobile-nav-link text-body-lg font-medium text-ivory-100 py-2 border-b border-champagne-200/10 transition-colors hover:text-bronze-300"
+        >
+          {link.label}
+        </a>
+      ))}
+      
+      <div class="pt-4 flex flex-col gap-4">
+        <WhatsAppButton variant="primary" size="md" class="w-full justify-center" />
+      </div>
+    </nav>
+  </div>
+</header>
+
+<script>
+  // Mobile Navigation Drawer Script
+  function setupMobileNav() {
+    const toggleBtn = document.getElementById('mobile-menu-toggle');
+    const mobileNav = document.getElementById('mobile-nav');
+    const backdrop = document.getElementById('mobile-nav-backdrop');
+    const iconHamburger = document.getElementById('icon-hamburger');
+    const iconClose = document.getElementById('icon-close');
+    const mobileLinks = document.querySelectorAll('.mobile-nav-link');
+
+    if (!toggleBtn || !mobileNav || !backdrop) return;
+
+    let isOpen = false;
+
+    function openMenu() {
+      isOpen = true;
+      toggleBtn.setAttribute('aria-expanded', 'true');
+      mobileNav.classList.remove('-translate-y-full', 'opacity-0', 'pointer-events-none');
+      backdrop.classList.remove('opacity-0', 'pointer-events-none');
+      iconHamburger?.classList.add('hidden');
+      iconClose?.classList.remove('hidden');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeMenu() {
+      isOpen = false;
+      toggleBtn.setAttribute('aria-expanded', 'false');
+      mobileNav.classList.add('-translate-y-full', 'opacity-0', 'pointer-events-none');
+      backdrop.classList.add('opacity-0', 'pointer-events-none');
+      iconHamburger?.classList.remove('hidden');
+      iconClose?.classList.add('hidden');
+      document.body.style.overflow = '';
+    }
+
+    toggleBtn.addEventListener('click', () => {
+      if (isOpen) {
+        closeMenu();
+      } else {
+        openMenu();
+      }
+    });
+
+    backdrop.addEventListener('click', closeMenu);
+
+    mobileLinks.forEach((link) => {
+      link.addEventListener('click', closeMenu);
+    });
+
+    // Close on escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isOpen) {
+        closeMenu();
+        toggleBtn.focus();
+      }
+    });
+  }
+
+  // Run on page load and astro page transitions
+  setupMobileNav();
+  document.addEventListener('astro:after-swap', setupMobileNav);
+</script>

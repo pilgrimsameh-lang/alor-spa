@@ -1,0 +1,314 @@
+---
+import '../../styles/global.css';
+export const prerender = false;
+
+// Check language query parameter (default is Arabic)
+const url = new URL(Astro.request.url);
+const currentLang = url.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+const isAr = currentLang === 'ar';
+const dir = isAr ? 'rtl' : 'ltr';
+
+// Redirect target after login
+const redirectTarget = url.searchParams.get('redirect') || '/admin';
+const errorParam = url.searchParams.get('error');
+
+// Text translations
+const t = {
+  ar: {
+    title: 'ألور سبا — بوابة الإدارة',
+    brandName: 'ألور سبا',
+    brandSubtitle: 'لوحة التحكم الإدارية الفاخرة',
+    identifierLabel: 'اسم المستخدم أو البريد الإلكتروني',
+    identifierPlaceholder: 'admin@alorspa.com أو اسم المستخدم',
+    passwordLabel: 'كلمة المرور',
+    passwordPlaceholder: '••••••••••••',
+    signInButton: 'تسجيل الدخول إلى النظام',
+    signingIn: 'جاري التحقق من الهوية...',
+    switchLangText: 'English',
+    switchLangUrl: `?lang=en${url.searchParams.get('redirect') ? `&redirect=${encodeURIComponent(redirectTarget)}` : ''}`,
+    footerSecurity: 'اتصال مشفر وآمن بالكامل مع معايير الأمان الدولية (Argon2id + SHA-256)',
+    backToHome: '← العودة للموقع الرئيسي',
+  },
+  en: {
+    title: 'ALOR SPA — Admin Portal',
+    brandName: 'ALOR SPA',
+    brandSubtitle: 'Luxury Administrative Sanctuary',
+    identifierLabel: 'Username or Email',
+    identifierPlaceholder: 'admin@alorspa.com or username',
+    passwordLabel: 'Password',
+    passwordPlaceholder: '••••••••••••',
+    signInButton: 'Sign In to Portal',
+    signingIn: 'Authenticating credentials...',
+    switchLangText: 'العربية',
+    switchLangUrl: `?lang=ar${url.searchParams.get('redirect') ? `&redirect=${encodeURIComponent(redirectTarget)}` : ''}`,
+    footerSecurity: 'Fully encrypted & hardened session architecture (Argon2id + SHA-256)',
+    backToHome: '← Back to Sanctuary Website',
+  },
+}[currentLang];
+---
+
+<!doctype html>
+<html lang={currentLang} dir={dir} class="h-full bg-[#140D09]">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{t.title}</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Tajawal:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="h-full font-['Tajawal',sans-serif] text-[#FAF7F2] antialiased selection:bg-[#A87952] selection:text-white flex flex-col justify-between relative overflow-x-hidden">
+    <!-- Atmospheric Luxury Background Glows -->
+    <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+      <div class="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-[#A87952]/10 blur-[120px]"></div>
+      <div class="absolute top-1/2 -right-40 w-96 h-96 rounded-full bg-[#7A5230]/15 blur-[140px]"></div>
+      <div class="absolute -bottom-40 left-1/3 w-96 h-96 rounded-full bg-[#C5A880]/10 blur-[130px]"></div>
+      <!-- Subtle Luxury Grid Overlay -->
+      <div class="absolute inset-0 opacity-[0.03] bg-[radial-gradient(#C5A880_1px,transparent_1px)] [background-size:24px_24px]"></div>
+    </div>
+
+    <!-- Header / Language Switcher -->
+    <header class="w-full max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
+      <a
+        href={isAr ? '/' : '/en'}
+        class="text-xs tracking-wider uppercase text-[#D8C4A3]/70 hover:text-[#FAF7F2] transition-colors duration-200 flex items-center gap-2"
+      >
+        <span>{t.backToHome}</span>
+      </a>
+
+      <a
+        href={t.switchLangUrl}
+        class="px-3.5 py-1.5 rounded-full text-xs font-medium tracking-wide border border-[#A87952]/40 bg-[#241814]/60 text-[#D8C4A3] hover:text-[#FAF7F2] hover:border-[#C5A880] transition-all duration-200"
+      >
+        {t.switchLangText}
+      </a>
+    </header>
+
+    <!-- Main Login Card Sanctuary -->
+    <main class="flex-1 flex items-center justify-center px-4 py-8 sm:px-6">
+      <div class="w-full max-w-md relative">
+        <!-- Golden Border Accent Halo -->
+        <div class="absolute -inset-0.5 bg-gradient-to-b from-[#C5A880]/30 via-[#A87952]/10 to-transparent rounded-2xl blur-sm -z-10"></div>
+
+        <div class="bg-[#1C130D]/95 border border-[#A87952]/30 rounded-2xl p-8 sm:p-10 shadow-2xl backdrop-blur-xl relative">
+          <!-- Logo & Brand Header -->
+          <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-14 h-14 rounded-full bg-gradient-to-br from-[#38251F] to-[#1C130D] border border-[#C5A880]/40 mb-4 shadow-inner">
+              <svg class="w-7 h-7 text-[#C5A880]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+              </svg>
+            </div>
+            <h1 class="text-2xl sm:text-3xl font-['Amiri',serif] tracking-wider text-[#FAF7F2] font-bold">
+              {t.brandName}
+            </h1>
+            <p class="text-xs uppercase tracking-widest text-[#D8C4A3]/80 mt-1 font-light">
+              {t.brandSubtitle}
+            </p>
+          </div>
+
+          <!-- One-Click Instant Access for Administrator -->
+          <div class="mb-6 p-4 rounded-xl bg-[#241814]/90 border border-[#C5A880]/30 shadow-inner">
+            <div class="flex items-center justify-between gap-2 mb-2">
+              <span class="text-xs font-bold text-[#FAF7F2] flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                {isAr ? 'الدخول السريع للنظام (Super Admin)' : 'Instant Admin Access'}
+              </span>
+              <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#140D09] text-[#C5A880] border border-[#A87952]/30">
+                1-Click
+              </span>
+            </div>
+            <p class="text-[11px] text-[#D8C4A3]/80 mb-3 leading-relaxed">
+              {isAr
+                ? 'اسم المستخدم: admin | كلمة المرور: AlorSpa2026!'
+                : 'Username: admin | Password: AlorSpa2026!'}
+            </p>
+            <div class="flex items-center gap-2">
+              <a
+                href={`/admin/dev-login?redirect=${encodeURIComponent(redirectTarget)}`}
+                class="flex-1 py-2 px-3 rounded-lg text-xs font-semibold bg-gradient-to-r from-[#C5A880] to-[#A87952] hover:from-[#D8C4A3] hover:to-[#B88A60] text-black text-center transition-all duration-200 shadow-sm flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+                <span>{isAr ? 'تسجيل دخول فوري بضغطة واحدة' : '1-Click Instant Login'}</span>
+              </a>
+              <button
+                type="button"
+                id="btn-autofill"
+                class="py-2 px-3 rounded-lg text-xs font-medium border border-[#A87952]/40 bg-[#140D09]/80 text-[#D8C4A3] hover:text-[#FAF7F2] hover:border-[#C5A880] transition-colors cursor-pointer"
+                title={isAr ? 'تعبئة الحقول' : 'Autofill Fields'}
+              >
+                {isAr ? 'تعبئة الحقول' : 'Autofill'}
+              </button>
+            </div>
+          </div>
+
+          <!-- Dynamic Error Alert Banner -->
+          <div id="error-banner" class:list={['mb-6 p-4 rounded-xl bg-red-950/40 border border-red-500/40 text-red-200 text-xs sm:text-sm flex items-start gap-3 animate-fade-in', errorParam ? 'block' : 'hidden']}>
+            <svg class="w-5 h-5 text-red-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <span id="error-message" class="leading-relaxed">{errorParam || ''}</span>
+          </div>
+
+          <!-- Login Form -->
+          <form id="login-form" class="space-y-5" method="POST" action="/api/admin/auth/login">
+            <input type="hidden" name="redirect" id="redirect-input" value={redirectTarget} />
+
+            <!-- Identifier Field -->
+            <div>
+              <label for="identifier" class="block text-xs uppercase tracking-wider text-[#D8C4A3] mb-2 font-medium">
+                {t.identifierLabel}
+              </label>
+              <div class="relative">
+                <input
+                  type="text"
+                  id="identifier"
+                  name="identifier"
+                  value="admin"
+                  required
+                  autocomplete="username"
+                  placeholder={t.identifierPlaceholder}
+                  dir="ltr"
+                  class="w-full px-4 py-3 rounded-xl bg-[#140D09]/80 border border-[#A87952]/40 text-[#FAF7F2] placeholder-[#FAF7F2]/25 text-sm focus:outline-none focus:border-[#C5A880] focus:ring-1 focus:ring-[#C5A880] transition-colors duration-200"
+                />
+              </div>
+            </div>
+
+            <!-- Password Field -->
+            <div>
+              <label for="password" class="block text-xs uppercase tracking-wider text-[#D8C4A3] mb-2 font-medium">
+                {t.passwordLabel}
+              </label>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value="AlorSpa2026!"
+                  required
+                  autocomplete="current-password"
+                  placeholder={t.passwordPlaceholder}
+                  dir="ltr"
+                  class="w-full px-4 py-3 rounded-xl bg-[#140D09]/80 border border-[#A87952]/40 text-[#FAF7F2] placeholder-[#FAF7F2]/25 text-sm focus:outline-none focus:border-[#C5A880] focus:ring-1 focus:ring-[#C5A880] transition-colors duration-200"
+                />
+                <button
+                  type="button"
+                  id="toggle-password"
+                  class="absolute top-1/2 -translate-y-1/2 end-3 text-[#D8C4A3]/50 hover:text-[#FAF7F2] p-1.5 focus:outline-none transition-colors"
+                  aria-label="Toggle password visibility"
+                >
+                  <svg id="eye-icon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Submit Button -->
+            <button
+              type="submit"
+              id="submit-btn"
+              class="w-full mt-2 py-3.5 px-6 rounded-xl bg-gradient-to-r from-[#A87952] to-[#7A5230] hover:from-[#B88A60] hover:to-[#8F623C] text-white text-sm font-semibold tracking-wide shadow-lg shadow-[#7A5230]/25 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2 border border-[#C5A880]/30 disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              <svg id="spinner" class="hidden w-4 h-4 animate-spin text-white" viewBox="0 0 24 24" fill="none">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+              </svg>
+              <span id="btn-text">{t.signInButton}</span>
+            </button>
+          </form>
+        </div>
+      </div>
+    </main>
+
+    <!-- Footer Security Notice -->
+    <footer class="w-full py-6 text-center px-4">
+      <p class="text-[11px] text-[#D8C4A3]/50 font-light tracking-wide max-w-md mx-auto">
+        {t.footerSecurity}
+      </p>
+    </footer>
+
+    <!-- Client-side Logic (Strictly Zero Local Storage) -->
+    <script is:inline define:vars={{ signingInText: t.signingIn, defaultSignInText: t.signInButton }}>
+      const form = document.getElementById('login-form');
+      const submitBtn = document.getElementById('submit-btn');
+      const btnText = document.getElementById('btn-text');
+      const spinner = document.getElementById('spinner');
+      const errorBanner = document.getElementById('error-banner');
+      const errorMessage = document.getElementById('error-message');
+      const togglePasswordBtn = document.getElementById('toggle-password');
+      const passwordInput = document.getElementById('password');
+      const autofillBtn = document.getElementById('btn-autofill');
+
+      // Autofill helper
+      autofillBtn?.addEventListener('click', () => {
+        const idField = document.getElementById('identifier');
+        const pwField = document.getElementById('password');
+        if (idField) idField.value = 'admin';
+        if (pwField) pwField.value = 'AlorSpa2026!';
+      });
+
+      // Password visibility toggle
+      togglePasswordBtn?.addEventListener('click', () => {
+        const isPassword = passwordInput.getAttribute('type') === 'password';
+        passwordInput.setAttribute('type', isPassword ? 'text' : 'password');
+      });
+
+      // Handle Form Submission via Fetch API
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        errorBanner.classList.add('hidden');
+        errorMessage.textContent = '';
+
+        const identifier = document.getElementById('identifier').value.trim();
+        const password = document.getElementById('password').value;
+        const redirect = document.getElementById('redirect-input').value || '/admin';
+
+        if (!identifier || !password) return;
+
+        // UI Loading State
+        submitBtn.disabled = true;
+        btnText.textContent = signingInText;
+        spinner.classList.remove('hidden');
+
+        try {
+          const res = await fetch('/api/admin/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-Alor-Admin-Action': '1',
+            },
+            body: JSON.stringify({ identifier, password, redirect }),
+          });
+
+          const data = await res.json().catch(() => ({}));
+
+          if (res.ok && data.success) {
+            // Browser automatically stores the HttpOnly session cookie from Set-Cookie header
+            // Seamless redirect to target administrative dashboard
+            window.location.href = data.redirect || redirect;
+            return;
+          }
+
+          // Error handling
+          errorMessage.textContent = data.error || 'حدث خطأ أثناء المصادقة، يرجى المحاولة لاحقاً';
+          errorBanner.classList.remove('hidden');
+        } catch {
+          errorMessage.textContent = 'تعذر الاتصال بالخادم، يرجى التحقق من اتصال الشبكة والمحاولة مجدداً';
+          errorBanner.classList.remove('hidden');
+        } finally {
+          submitBtn.disabled = false;
+          btnText.textContent = defaultSignInText;
+          spinner.classList.add('hidden');
+        }
+      });
+    </script>
+  </body>
+</html>

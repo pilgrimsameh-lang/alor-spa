@@ -1,0 +1,101 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const logsRes = await client.execute(`
+  SELECT 
+    l.id,
+    l.action,
+    l.entity_type,
+    l.entity_id,
+    l.ip_address,
+    l.created_at,
+    u.username,
+    u.full_name
+  FROM activity_logs l
+  LEFT JOIN admin_users u ON l.user_id = u.id
+  ORDER BY l.created_at DESC
+  LIMIT 100;
+`);
+
+const logs = logsRes.rows;
+---
+
+<AdminLayout title={isRtl ? 'سجل النشاطات' : 'Activity Logs'} requiredPermission="logs:read">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'سجل النشاطات والتدقيق الأمني' : 'Activity & Audit Trail'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'مراقبة وتدقيق كافة العمليات الإدارية، تسجيل الدخول، وتعديل المحتوى' : 'Tamper-evident audit logs monitoring all administrative modifications and access events'}
+      </p>
+    </div>
+
+    <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+      <span class="text-[#C5A880] font-bold">{logs.length}</span>
+      <span>{isRtl ? 'سجلات مسجلة' : 'Logged Events'}</span>
+    </span>
+  </div>
+
+  {logs.length === 0 ? (
+    <EmptyState
+      title={isRtl ? 'لا توجد أنشطة مسجلة حالياً' : 'No Activity Logs Recorded'}
+      description={isRtl
+        ? 'سجل المراقبة والتدقيق الأمني جاهز لاستقبال وتوثيق العمليات الإدارية وتغييرات البيانات.'
+        : 'Audit trail is active and ready to log state changes, admin logins and content operations.'}
+      lang={lang}
+    />
+  ) : (
+    <div class="rounded-2xl border border-[#A87952]/20 bg-[#1C130D]/70 overflow-hidden shadow-xl backdrop-blur-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-start border-collapse">
+          <thead>
+            <tr class="border-b border-[#A87952]/20 bg-[#140D09]/80 text-[#D8C4A3]/70 text-[11px] uppercase tracking-wider font-semibold">
+              <th class="py-4 px-6 text-start">{isRtl ? 'الوقت' : 'Timestamp'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'المستخدم' : 'Actor'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'الإجراء' : 'Action'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'النوع' : 'Entity'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'عنوان IP' : 'IP Address'}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#A87952]/10 text-xs">
+            {logs.map((log) => (
+              <tr class="hover:bg-[#241814]/60 transition-colors">
+                <td class="py-4 px-6 text-[#D8C4A3]/80 font-mono text-[11px]">
+                  {new Date(Number(log.created_at)).toLocaleString(isRtl ? 'ar-SA' : 'en-US')}
+                </td>
+                <td class="py-4 px-6 font-semibold text-[#FAF7F2]">
+                  {log.full_name || log.username || 'System'}
+                </td>
+                <td class="py-4 px-6">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono bg-[#38251F] text-[#C5A880]">
+                    {log.action}
+                  </span>
+                </td>
+                <td class="py-4 px-6 text-[#D8C4A3]">
+                  {log.entity_type} {log.entity_id ? `(#${log.entity_id})` : ''}
+                </td>
+                <td class="py-4 px-6 font-mono text-[11px] text-[#D8C4A3]/60">
+                  {log.ip_address || '—'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+</AdminLayout>

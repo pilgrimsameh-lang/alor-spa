@@ -1,0 +1,143 @@
+---
+import type { AdminUserLocal } from '../../server/auth/rbac';
+import { getSectionMetadata } from '../../server/auth/admin-nav';
+
+interface Props {
+  user: AdminUserLocal;
+  currentPath: string;
+  lang?: 'ar' | 'en';
+}
+
+const {
+  user,
+  currentPath,
+  lang = 'ar',
+} = Astro.props;
+
+const isRtl = lang === 'ar';
+const section = getSectionMetadata(currentPath);
+
+const roleDisplayMap: Record<string, { ar: string; en: string }> = {
+  super_admin: { ar: 'المدير العام للنظام', en: 'Super Administrator' },
+  role_super_admin: { ar: 'المدير العام للنظام', en: 'Super Administrator' },
+  spa_manager: { ar: 'مديرة السبا', en: 'Spa Manager' },
+  role_spa_manager: { ar: 'مديرة السبا', en: 'Spa Manager' },
+  content_editor: { ar: 'محررة المحتوى', en: 'Content Editor' },
+  role_content_editor: { ar: 'محررة المحتوى', en: 'Content Editor' },
+};
+
+const userRoleLabel = roleDisplayMap[user.roleSlug] || roleDisplayMap[user.roleId] || { ar: user.roleSlug, en: user.roleSlug };
+const targetLang = isRtl ? 'en' : 'ar';
+const targetLangLabel = isRtl ? 'English' : 'العربية';
+---
+
+<header class="h-20 border-b border-[#A87952]/20 bg-[#1C130D]/80 backdrop-blur-xl sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 select-none">
+  <!-- Left Side (RTL: Right Side): Sidebar Toggles & Breadcrumbs -->
+  <div class="flex items-center gap-3 sm:gap-4">
+    <!-- Mobile Hamburger Toggle -->
+    <button
+      id="admin-mobile-toggle"
+      class="lg:hidden p-2 rounded-xl text-[#D8C4A3] bg-[#241814] border border-[#A87952]/25 hover:text-[#FAF7F2] hover:bg-[#38251F] transition-all cursor-pointer shadow-sm"
+      aria-label="Toggle Navigation Drawer"
+    >
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      </svg>
+    </button>
+
+    <!-- Desktop Sidebar Collapse Toggle -->
+    <button
+      id="admin-desktop-collapse-toggle"
+      class="hidden lg:flex p-2 rounded-xl text-[#D8C4A3]/80 bg-[#241814] border border-[#A87952]/25 hover:text-[#FAF7F2] hover:bg-[#38251F] transition-all cursor-pointer shadow-sm"
+      title={isRtl ? 'طي / توسيع القائمة الجانبية' : 'Toggle Sidebar Collapse'}
+      aria-label="Collapse Sidebar"
+    >
+      <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 6h16M4 12h10M4 18h16" />
+      </svg>
+    </button>
+
+    <!-- Breadcrumb Indicator -->
+    <div class="flex items-center gap-2 text-xs text-[#D8C4A3]/70 font-medium">
+      <a href="/admin" class="hover:text-[#FAF7F2] transition-colors flex items-center gap-1.5">
+        <svg class="w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+        <span class="hidden sm:inline">{isRtl ? 'لوحة الإدارة' : 'Admin'}</span>
+      </a>
+
+      {section && section.href !== '/admin' && (
+        <>
+          <svg class={`w-3.5 h-3.5 text-[#A87952] ${isRtl ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+          </svg>
+          <span class="text-[#FAF7F2] font-semibold">
+            {isRtl ? section.titleAr : section.titleEn}
+          </span>
+        </>
+      )}
+    </div>
+  </div>
+
+  <!-- Right Side (RTL: Left Side): System Status, Language Switcher, Profile & Logout -->
+  <div class="flex items-center gap-2 sm:gap-3">
+    <!-- Live Server Status Indicator (Hidden on smallest mobile) -->
+    <div class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#140D09]/80 border border-[#A87952]/20 text-[11px] text-[#D8C4A3]/80">
+      <span class="relative flex h-2 w-2">
+        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+      </span>
+      <span>{isRtl ? 'النظام متصل وآمن' : 'System Secure'}</span>
+    </div>
+
+    <!-- Public Website Preview Link -->
+    <a
+      href="/"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-[#D8C4A3] bg-[#241814] border border-[#A87952]/25 hover:text-[#FAF7F2] hover:bg-[#38251F] transition-all"
+      title={isRtl ? 'عرض الموقع العام للعملاء' : 'View Public Website'}
+    >
+      <svg class="w-3.5 h-3.5 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+      </svg>
+      <span>{isRtl ? 'الموقع العام' : 'Public Site'}</span>
+    </a>
+
+    <!-- Language Toggle Switcher (RTL / LTR) -->
+    <button
+      id="admin-lang-toggle"
+      data-target-lang={targetLang}
+      class="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-[#FAF7F2] bg-[#241814] border border-[#C5A880]/30 hover:border-[#C5A880]/60 hover:bg-[#38251F] transition-all cursor-pointer shadow-sm"
+      title={isRtl ? 'تبديل اللغة إلى الإنجليزية (LTR)' : 'Switch Language to Arabic (RTL)'}
+    >
+      <svg class="w-3.5 h-3.5 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+      </svg>
+      <span>{targetLangLabel}</span>
+    </button>
+
+    <!-- User Profile Mini Pill -->
+    <div class="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#241814] border border-[#A87952]/25">
+      <div class="w-7 h-7 rounded-full bg-gradient-to-br from-[#A87952] to-[#7A5230] text-[#FAF7F2] text-xs font-bold flex items-center justify-center border border-[#C5A880]/40">
+        {user.fullName.slice(0, 1).toUpperCase()}
+      </div>
+      <div class="flex flex-col text-start">
+        <span class="text-xs font-semibold text-[#FAF7F2] leading-tight">{user.fullName}</span>
+        <span class="text-[9px] text-[#C5A880] leading-tight font-light">{isRtl ? userRoleLabel.ar : userRoleLabel.en}</span>
+      </div>
+    </div>
+
+    <!-- Logout Action Button -->
+    <button
+      id="header-logout-btn"
+      class="px-3.5 py-1.5 rounded-xl text-xs font-medium border border-red-500/30 bg-red-950/20 text-red-300 hover:bg-red-900/40 hover:border-red-500/60 hover:text-red-100 transition-all cursor-pointer flex items-center gap-1.5 shadow-sm"
+      title={isRtl ? 'تسجيل الخروج الآمن' : 'Secure Logout'}
+    >
+      <svg class="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+      </svg>
+      <span class="hidden sm:inline">{isRtl ? 'تسجيل الخروج' : 'Logout'}</span>
+    </button>
+  </div>
+</header>

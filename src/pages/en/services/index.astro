@@ -1,0 +1,65 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import Header from '../../../components/layout/Header.astro';
+import Footer from '../../../components/layout/Footer.astro';
+import ServicesCatalog from '../../../components/services/ServicesCatalog.astro';
+import { servicesData } from '../../../data/services';
+import { useTranslations } from '../../../i18n/utils';
+
+const t = useTranslations('en');
+
+// SEO Title & Description
+const seoTitle = 'Luxury Massage & Women Spa Services in Riyadh | ALOR SPA';
+const seoDescription = "Discover ALOR SPA's signature women's wellness services in Riyadh: Relaxation massage, therapeutic massage, hot stone therapy, Moroccan hammam, and nail care.";
+
+// Schema.org ItemList & BreadcrumbList Structured Data
+const siteUrl = Astro.site?.toString() || 'https://alorspa.com';
+const itemListSchema = {
+  '@type': 'ItemList',
+  name: 'ALOR SPA Riyadh Signature Services Catalog',
+  description: seoDescription,
+  numberOfItems: servicesData.length,
+  itemListElement: servicesData.map((service, index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name: service.title.en,
+    description: service.description.en,
+    url: `${siteUrl.replace(/\/$/, '')}/en/services/${service.slug}`,
+    image: `${siteUrl.replace(/\/$/, '')}${service.image}`,
+  })),
+};
+
+const breadcrumbSchema = {
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    {
+      '@type': 'ListItem',
+      position: 1,
+      name: 'Home',
+      item: `${siteUrl.replace(/\/$/, '')}/en/`,
+    },
+    {
+      '@type': 'ListItem',
+      position: 2,
+      name: 'Services',
+      item: `${siteUrl.replace(/\/$/, '')}/en/services`,
+    },
+  ],
+};
+---
+
+<Layout
+  title={seoTitle}
+  description={seoDescription}
+  canonicalPath="/en/services"
+  alternatePath="/services"
+  structuredData={[itemListSchema, breadcrumbSchema]}
+>
+  <Header />
+  
+  <main id="main-content">
+    <ServicesCatalog />
+  </main>
+
+  <Footer />
+</Layout>

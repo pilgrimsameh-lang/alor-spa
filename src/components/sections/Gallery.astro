@@ -1,0 +1,231 @@
+---
+import { getLangFromUrl, useTranslations } from '../../i18n/utils';
+import { galleryImages } from '../../data/gallery';
+
+const lang = getLangFromUrl(Astro.url);
+const t = useTranslations(lang);
+
+const filters = [
+  { id: 'all', label: t('gallery.filterAll') },
+  { id: 'treatment', label: t('gallery.filterTreatment') },
+  { id: 'ambiance', label: t('gallery.filterAmbiance') },
+  { id: 'rituals', label: t('gallery.filterRituals') },
+];
+---
+
+<section id="gallery" class="py-24 sm:py-32 bg-ivory-50 relative overflow-hidden">
+  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+    
+    <!-- Section Header -->
+    <div class="text-center max-w-3xl mx-auto mb-12 sm:mb-16">
+      <div class="inline-flex items-center gap-2 mb-3">
+        <span class="h-px w-6 bg-bronze-500"></span>
+        <span class="text-caption sm:text-body-sm font-semibold tracking-widest text-bronze-600 uppercase">
+          {t('gallery.eyebrow')}
+        </span>
+        <span class="h-px w-6 bg-bronze-500"></span>
+      </div>
+
+      <h2 class="font-heading text-3xl sm:text-4xl lg:text-5xl font-bold text-chocolate-800 leading-tight mb-5">
+        {t('gallery.title')}
+      </h2>
+
+      <!-- Diamond divider -->
+      <div class="flex items-center justify-center gap-3 mb-6">
+        <span class="h-px w-12 bg-bronze-400/40"></span>
+        <span class="h-1.5 w-1.5 rotate-45 bg-bronze-500"></span>
+        <span class="h-px w-12 bg-bronze-400/40"></span>
+      </div>
+
+      <p class="text-body sm:text-body-lg text-chocolate-600 leading-relaxed mb-8">
+        {t('gallery.subtitle')}
+      </p>
+
+      <!-- Category Filter Tabs -->
+      <div class="flex flex-wrap items-center justify-center gap-2 sm:gap-3" role="tablist">
+        {filters.map((filter, index) => (
+          <button
+            type="button"
+            class:list={[
+              'gallery-filter-btn px-4 py-2 rounded-pill text-body-sm font-medium transition-all duration-300 ease-elegant cursor-pointer',
+              index === 0
+                ? 'active bg-chocolate-800 text-ivory-50 shadow-soft'
+                : 'bg-white text-chocolate-600 border border-champagne-300/80 hover:border-bronze-400 hover:text-bronze-600',
+            ]}
+            data-filter={filter.id}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+    </div>
+
+    <!-- Gallery Grid -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8" id="gallery-grid">
+      {galleryImages.map((item, index) => (
+        <div
+          class:list={[
+            'gallery-item group relative rounded-card overflow-hidden bg-chocolate-900 shadow-soft transition-all duration-500 hover:shadow-card cursor-pointer',
+            index === 0 ? 'sm:col-span-2 lg:col-span-2 aspect-[16/9]' : 'aspect-[4/3]',
+          ]}
+          data-category={item.category}
+          data-src={item.src}
+          data-title={item.title[lang]}
+          data-alt={item.alt[lang]}
+        >
+          <img
+            src={item.src}
+            alt={item.alt[lang]}
+            width="800"
+            height={item.id === 'gallery-4' ? '1200' : item.id === 'gallery-5' ? '930' : '533'}
+            class="h-full w-full object-cover transition-transform duration-700 ease-elegant group-hover:scale-105"
+            loading="lazy"
+            decoding="async"
+          />
+          
+          <!-- Gradient Overlay -->
+          <div class="absolute inset-0 bg-gradient-to-t from-chocolate-950/85 via-chocolate-950/30 to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-95"></div>
+
+          <!-- Bottom Meta & Caption -->
+          <div class="absolute inset-x-0 bottom-0 p-5 sm:p-6 flex items-end justify-between gap-4">
+            <div>
+              <span class="inline-block px-2.5 py-0.5 rounded-pill bg-bronze-500/80 backdrop-blur-sm text-[11px] font-semibold text-ivory-50 uppercase tracking-wider mb-2">
+                {item.categoryLabel[lang]}
+              </span>
+              <h3 class="font-heading text-lg sm:text-xl font-bold text-ivory-50">
+                {item.title[lang]}
+              </h3>
+            </div>
+
+            <!-- Zoom Icon Button -->
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-chocolate-900/80 backdrop-blur-sm text-ivory-100 border border-champagne-300/30 transition-transform group-hover:scale-110 group-hover:border-bronze-400 group-hover:text-bronze-300">
+              <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607zM10.5 7.5v6m3-3h-6" />
+              </svg>
+            </span>
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Notice on luxury photography -->
+    <div class="mt-12 text-center">
+      <p class="text-caption sm:text-body-sm text-chocolate-500 max-w-xl mx-auto font-medium">
+        {lang === 'ar'
+          ? 'مجموعة صور مختارة تعكس فخامة وهدوء أجنحة وطقوس ALOR SPA في الرياض.'
+          : 'A curated visual showcase capturing the luxury, tranquility, and signature rituals of ALOR SPA Riyadh.'}
+      </p>
+    </div>
+
+  </div>
+
+  <!-- Lightbox Modal -->
+  <dialog
+    id="gallery-lightbox"
+    class="fixed inset-0 m-0 h-full w-full max-h-none max-w-none bg-chocolate-950/95 backdrop-blur-md p-4 sm:p-8 z-50 border-0 outline-none flex-col items-center justify-center backdrop:bg-chocolate-950/80"
+    aria-label="Image Preview"
+  >
+    <div class="relative w-full max-w-4xl mx-auto flex flex-col items-center">
+      <!-- Close Button -->
+      <button
+        type="button"
+        id="lightbox-close"
+        class="absolute -top-12 end-0 p-2 text-ivory-200 hover:text-bronze-300 focus:outline-none focus:ring-2 focus:ring-bronze-400 rounded-lg cursor-pointer"
+        aria-label="Close Preview"
+      >
+        <svg class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <!-- Lightbox Image -->
+      <div class="overflow-hidden rounded-xl shadow-2xl bg-chocolate-900 max-h-[75vh]">
+        <img id="lightbox-img" src="" alt="" width="1200" height="800" class="max-h-[75vh] w-auto object-contain" decoding="async" />
+      </div>
+
+      <!-- Caption -->
+      <p id="lightbox-caption" class="mt-4 text-center text-body-lg font-heading font-medium text-ivory-100"></p>
+    </div>
+  </dialog>
+</section>
+
+<script>
+  function setupGallery() {
+    const filterButtons = document.querySelectorAll('.gallery-filter-btn');
+    const galleryItems = document.querySelectorAll('.gallery-item');
+    const lightbox = document.getElementById('gallery-lightbox') as HTMLDialogElement | null;
+    const lightboxImg = document.getElementById('lightbox-img') as HTMLImageElement | null;
+    const lightboxCaption = document.getElementById('lightbox-caption');
+    const lightboxClose = document.getElementById('lightbox-close');
+
+    // Filter Functionality
+    filterButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const filter = btn.getAttribute('data-filter');
+
+        filterButtons.forEach((b) => {
+          b.classList.remove('active', 'bg-chocolate-800', 'text-ivory-50', 'shadow-soft');
+          b.classList.add('bg-white', 'text-chocolate-600', 'border', 'border-champagne-300/80');
+        });
+
+        btn.classList.add('active', 'bg-chocolate-800', 'text-ivory-50', 'shadow-soft');
+        btn.classList.remove('bg-white', 'text-chocolate-600', 'border');
+
+        galleryItems.forEach((item) => {
+          const cat = item.getAttribute('data-category');
+          if (filter === 'all' || cat === filter) {
+            (item as HTMLElement).style.display = '';
+          } else {
+            (item as HTMLElement).style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Lightbox Functionality
+    if (lightbox && lightboxImg && lightboxCaption && lightboxClose) {
+      galleryItems.forEach((item) => {
+        item.addEventListener('click', () => {
+          const src = item.getAttribute('data-src') || '';
+          const title = item.getAttribute('data-title') || '';
+          const alt = item.getAttribute('data-alt') || '';
+
+          lightboxImg.src = src;
+          lightboxImg.alt = alt;
+          lightboxCaption.textContent = title;
+
+          lightbox.showModal();
+          document.body.style.overflow = 'hidden';
+        });
+      });
+
+      function closeLightbox() {
+        if (!lightbox) return;
+        lightbox.close();
+        document.body.style.overflow = '';
+      }
+
+      lightboxClose.addEventListener('click', closeLightbox);
+      lightbox.addEventListener('click', (e) => {
+        if (e.target === lightbox) {
+          closeLightbox();
+        }
+      });
+      lightbox.addEventListener('close', () => {
+        document.body.style.overflow = '';
+      });
+    }
+  }
+
+  setupGallery();
+  document.addEventListener('astro:after-swap', setupGallery);
+</script>
+
+<style>
+  dialog:not([open]) {
+    display: none !important;
+  }
+  dialog[open] {
+    display: flex !important;
+  }
+</style>

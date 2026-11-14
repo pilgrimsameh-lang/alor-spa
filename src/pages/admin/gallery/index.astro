@@ -1,0 +1,398 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import MediaPickerModal from '../../../components/admin/MediaPickerModal.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const [galleryRes, mediaRes] = await Promise.all([
+  client.execute(`
+    SELECT 
+      g.*,
+      m.public_url,
+      m.filename,
+      m.mime_type
+    FROM gallery_items g
+    LEFT JOIN media_files m ON g.media_id = m.id
+    ORDER BY g.display_order ASC;
+  `),
+  client.execute('SELECT id, original_name, public_url FROM media_files ORDER BY created_at DESC;'),
+]);
+
+const galleryItems = galleryRes.rows;
+const mediaList = mediaRes.rows;
+---
+
+<AdminLayout title={isRtl ? 'معرض الصور' : 'Gallery Management'} requiredPermission="gallery:read">
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'معرض صور السبا' : 'Spa Photo Gallery'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'إدارة صور المرافق الفاخرة، غرف التدليك، وطقوس الاسترخاء' : 'Manage facility photos, relaxation suites and ambiance imagery'}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+        <span class="text-[#C5A880] font-bold" id="gallery-count-badge">{galleryItems.length}</span>
+        <span>{isRtl ? 'صور مسجلة' : 'Photos'}</span>
+      </span>
+
+      <button
+        type="button"
+        id="open-add-gallery-btn"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] transition-all shadow-md shadow-[#A87952]/20 cursor-pointer"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>{isRtl ? 'إضافة صورة للمعرض' : 'Add Photo'}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="gallery-toast" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span id="gallery-toast-icon"></span>
+      <span id="gallery-toast-msg" class="text-xs font-medium"></span>
+    </div>
+    <button type="button" onclick="document.getElementById('gallery-toast').classList.add('hidden')" class="text-xs opacity-70 hover:opacity-100">✕</button>
+  </div>
+
+  <!-- Gallery Grid -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+    {galleryItems.map((item) => (
+      <div class="rounded-2xl bg-[#1C130D]/80 border border-[#A87952]/25 overflow-hidden hover:border-[#C5A880]/50 transition-all duration-300 shadow-lg flex flex-col justify-between group" data-gallery-id={item.id}>
+        <div class="relative aspect-video bg-[#140D09] overflow-hidden">
+          {item.public_url ? (
+            <img
+              src={item.public_url as string}
+              alt={item.title_ar as string}
+              class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+              loading="lazy"
+            />
+          ) : (
+            <div class="w-full h-full flex items-center justify-center text-[#D8C4A3]/30">
+              <svg class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+          )}
+
+          <div class="absolute top-3 inset-x-3 flex items-center justify-between pointer-events-none">
+            <span class="px-2.5 py-1 rounded-lg text-[10px] font-semibold bg-[#140D09]/80 backdrop-blur-md text-[#C5A880] border border-[#A87952]/30">
+              {isRtl ? item.category_label_ar : item.category_label_en}
+            </span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-mono bg-black/60 backdrop-blur-md text-[#D8C4A3]">
+              #{item.display_order}
+            </span>
+          </div>
+        </div>
+
+        <div class="p-5 flex-1 flex flex-col justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-[#FAF7F2] font-['Amiri',serif] mb-1">
+              {isRtl ? item.title_ar : item.title_en}
+            </h3>
+            <p class="text-[11px] text-[#D8C4A3]/50 font-mono truncate">
+              {item.public_url || item.filename}
+            </p>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-[#A87952]/15 flex items-center justify-between text-xs">
+            <span class="text-[#D8C4A3]/60 text-[11px]">
+              {item.category}
+            </span>
+            <div class="flex items-center gap-1.5">
+              <button
+                type="button"
+                class="edit-gallery-btn p-1.5 rounded-lg text-[#C5A880] hover:bg-[#38251F] hover:text-[#FAF7F2] transition-colors cursor-pointer"
+                title={isRtl ? 'تعديل بيانات الصورة' : 'Edit Photo'}
+                data-json={JSON.stringify(item)}
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+              </button>
+              <button
+                type="button"
+                class="delete-gallery-btn p-1.5 rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors cursor-pointer"
+                title={isRtl ? 'حذف الصورة من المعرض' : 'Delete Photo'}
+                data-id={item.id}
+                data-name={isRtl ? item.title_ar : item.title_en}
+              >
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div id="gallery-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <h3 id="gallery-modal-title" class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+          {isRtl ? 'إضافة صورة إلى المعرض' : 'Add Photo to Gallery'}
+        </h3>
+        <button type="button" id="close-gallery-modal-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+
+      <form id="gallery-form" class="p-6 space-y-4">
+        <input type="hidden" id="gallery-form-id" name="id" />
+
+        <div class="mb-4">
+          <MediaPickerModal
+            id="gallery-media-picker"
+            name="media_id"
+            label={isRtl ? 'ملف الصورة (Media Asset) *' : 'Media Image *'}
+            required={true}
+            lang={lang}
+          />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'عنوان الصورة (عربي) *' : 'Title (Arabic) *'}</label>
+            <input type="text" id="gallery-title-ar" name="title_ar" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'عنوان الصورة (إنجليزي) *' : 'Title (English) *'}</label>
+            <input type="text" id="gallery-title-en" name="title_en" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الفئة (Category Slug)' : 'Category'}</label>
+            <select id="gallery-category" name="category" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none">
+              <option value="ambiance">ambiance</option>
+              <option value="treatment">treatment</option>
+              <option value="rituals">rituals</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'تسمية الفئة (عربي)' : 'Label (Arabic)'}</label>
+            <input type="text" id="gallery-cat-ar" name="category_label_ar" value="الأجواء" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'تسمية الفئة (إنجليزي)' : 'Label (English)'}</label>
+            <input type="text" id="gallery-cat-en" name="category_label_en" value="Ambiance" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'ترتيب الظهور' : 'Display Order'}</label>
+            <input type="number" id="gallery-display-order" name="display_order" value="0" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div class="flex items-center pt-5">
+            <label class="flex items-center gap-2 text-xs text-[#FAF7F2] cursor-pointer">
+              <input type="checkbox" id="gallery-is-published" name="is_published" checked class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+              <span>{isRtl ? 'صورة منشورة' : 'Published'}</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-gallery-modal-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </button>
+          <button type="submit" id="save-gallery-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] cursor-pointer shadow-md">
+            {isRtl ? 'حفظ الصورة' : 'Save Photo'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="gallery-delete-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-[#FAF7F2] mb-2 font-['Amiri',serif]">
+        {isRtl ? 'تأكيد حذف الصورة' : 'Confirm Photo Deletion'}
+      </h3>
+      <p class="text-xs text-[#D8C4A3]/80 mb-6 leading-relaxed">
+        {isRtl ? 'هل أنت متأكد من حذف صورة' : 'Are you sure you want to delete'}
+        <strong id="delete-gallery-name" class="text-[#FAF7F2]"></strong>؟
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" id="cancel-gallery-delete-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+          {isRtl ? 'إلغاء' : 'Cancel'}
+        </button>
+        <button type="button" id="confirm-gallery-delete-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-md">
+          {isRtl ? 'نعم، حذف' : 'Yes, Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('gallery-modal');
+      const deleteModal = document.getElementById('gallery-delete-modal');
+      const form = document.getElementById('gallery-form');
+      const toast = document.getElementById('gallery-toast');
+      const toastMsg = document.getElementById('gallery-toast-msg');
+      const toastIcon = document.getElementById('gallery-toast-icon');
+
+      function showToast(message, isSuccess = true) {
+        toast.className = `fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between ${
+          isSuccess ? 'bg-[#142617] border-emerald-500/50 text-emerald-200' : 'bg-[#2b1111] border-red-500/50 text-red-200'
+        }`;
+        toastIcon.textContent = isSuccess ? '✓' : '✗';
+        toastMsg.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+      }
+
+      document.getElementById('open-add-gallery-btn')?.addEventListener('click', () => {
+        form.reset();
+        document.getElementById('gallery-form-id').value = '';
+        document.getElementById('gallery-modal-title').textContent = 'إضافة صورة إلى المعرض';
+        const picker = document.getElementById('gallery-media-picker');
+        if (picker && typeof picker.setSelectedMedia === 'function') {
+          picker.setSelectedMedia('', '', '');
+        }
+        modal.classList.remove('hidden');
+      });
+
+      document.getElementById('close-gallery-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+      document.getElementById('cancel-gallery-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+
+      document.querySelectorAll('.edit-gallery-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const item = JSON.parse(btn.getAttribute('data-json') || '{}');
+          document.getElementById('gallery-form-id').value = item.id || '';
+          document.getElementById('gallery-title-ar').value = item.title_ar || '';
+          document.getElementById('gallery-title-en').value = item.title_en || '';
+          document.getElementById('gallery-category').value = item.category || 'ambiance';
+          document.getElementById('gallery-cat-ar').value = item.category_label_ar || 'الأجواء';
+          document.getElementById('gallery-cat-en').value = item.category_label_en || 'Ambiance';
+          document.getElementById('gallery-display-order').value = item.display_order ?? 0;
+          document.getElementById('gallery-is-published').checked = Number(item.is_published) === 1;
+          document.getElementById('gallery-modal-title').textContent = 'تعديل الصورة: ' + (item.title_ar || item.id);
+
+          const picker = document.getElementById('gallery-media-picker');
+          if (picker && typeof picker.setSelectedMedia === 'function') {
+            picker.setSelectedMedia(item.media_id, item.public_url, item.title_ar);
+          }
+
+          modal.classList.remove('hidden');
+        });
+      });
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('gallery-form-id').value.trim();
+        const isEdit = Boolean(id);
+
+        const mediaId = document.getElementById('gallery-media-picker-value')?.value;
+        if (!mediaId) {
+          showToast('يرجى اختيار صورة للمعرض أولاً', false);
+          return;
+        }
+
+        const payload = {
+          media_id: mediaId,
+          title_ar: document.getElementById('gallery-title-ar').value.trim(),
+          title_en: document.getElementById('gallery-title-en').value.trim(),
+          category: document.getElementById('gallery-category').value,
+          category_label_ar: document.getElementById('gallery-cat-ar').value.trim(),
+          category_label_en: document.getElementById('gallery-cat-en').value.trim(),
+          display_order: Number(document.getElementById('gallery-display-order').value) || 0,
+          is_published: document.getElementById('gallery-is-published').checked ? 1 : 0,
+        };
+
+        const saveBtn = document.getElementById('save-gallery-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'جاري الحفظ...';
+
+        try {
+          const endpoint = isEdit ? `/api/admin/gallery/${encodeURIComponent(id)}` : '/api/admin/gallery';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const res = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشلت العملية');
+
+          showToast(data.message || 'تم الحفظ بنجاح', true);
+          modal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'حفظ الصورة';
+        }
+      });
+
+      let targetGalleryId = null;
+      document.querySelectorAll('.delete-gallery-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          targetGalleryId = btn.getAttribute('data-id');
+          document.getElementById('delete-gallery-name').textContent = btn.getAttribute('data-name');
+          deleteModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('cancel-gallery-delete-btn')?.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+        targetGalleryId = null;
+      });
+
+      document.getElementById('confirm-gallery-delete-btn')?.addEventListener('click', async () => {
+        if (!targetGalleryId) return;
+        const confirmBtn = document.getElementById('confirm-gallery-delete-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'جاري الحذف...';
+
+        try {
+          const res = await fetch(`/api/admin/gallery/${encodeURIComponent(targetGalleryId)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشل الحذف');
+
+          showToast('تم حذف الصورة من المعرض بنجاح', true);
+          deleteModal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'نعم، حذف';
+        }
+      });
+    });
+  </script>
+</AdminLayout>

@@ -1,0 +1,178 @@
+---
+import '../styles/global.css';
+import type { AdminUserLocal } from '../server/auth/rbac';
+import { hasPermission } from '../server/auth/rbac';
+import AdminSidebar from '../components/admin/AdminSidebar.astro';
+import AdminHeader from '../components/admin/AdminHeader.astro';
+import AccessDenied from '../components/admin/AccessDenied.astro';
+
+export const prerender = false;
+
+interface Props {
+  title: string;
+  requiredPermission?: string;
+}
+
+const { title, requiredPermission } = Astro.props;
+
+// 1. Session verification fallback (middleware guarantees this, but double check for absolute safety)
+const user = Astro.locals.user;
+const session = Astro.locals.session;
+
+if (!user || !session) {
+  return Astro.redirect('/admin/login');
+}
+
+// 2. Language & Direction Determination (Arabic RTL default, English LTR secondary)
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const dir: 'rtl' | 'ltr' = lang === 'ar' ? 'rtl' : 'ltr';
+
+// Persist language choice in cookie if passed in URL
+if (queryLang && (queryLang === 'ar' || queryLang === 'en')) {
+  Astro.cookies.set('alor_admin_lang', queryLang, {
+    path: '/',
+    maxAge: 30 * 24 * 60 * 60, // 30 days
+    sameSite: 'lax',
+    httpOnly: false,
+  });
+}
+
+// 3. Server-side RBAC Permission Enforcement
+const isAuthorized = !requiredPermission || hasPermission(user, requiredPermission);
+if (!isAuthorized) {
+  Astro.response.status = 403;
+}
+
+const currentPath = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang={lang} dir={dir} class="h-full bg-[#140D09]">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{title} — ألور سبا ALOR SPA</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Tajawal:wght@300;400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body class="h-full font-['Tajawal',sans-serif] text-[#FAF7F2] antialiased selection:bg-[#A87952] selection:text-white flex overflow-hidden">
+    <!-- Atmospheric Luxury Background Ambient Glows -->
+    <div class="fixed inset-0 pointer-events-none -z-10 overflow-hidden">
+      <div class="absolute -top-40 right-1/4 w-[32rem] h-[32rem] rounded-full bg-[#A87952]/10 blur-[140px]"></div>
+      <div class="absolute bottom-10 left-10 w-[30rem] h-[30rem] rounded-full bg-[#7A5230]/15 blur-[150px]"></div>
+      <div class="absolute inset-0 opacity-[0.025] bg-[radial-gradient(#C5A880_1px,transparent_1px)] [background-size:28px_28px]"></div>
+    </div>
+
+    <!-- Collapsible Responsive Sidebar -->
+    <AdminSidebar user={user} currentPath={currentPath} lang={lang} />
+
+    <!-- Main Viewport Container -->
+    <div class="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+      <!-- Fixed Header Bar -->
+      <AdminHeader user={user} currentPath={currentPath} lang={lang} />
+
+      <!-- Scrollable Main Content Area -->
+      <main class="flex-1 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        {isAuthorized ? (
+          <slot />
+        ) : (
+          <AccessDenied user={user} requiredPermission={requiredPermission} lang={lang} />
+        )}
+      </main>
+
+      <!-- Admin Global Footer -->
+      <footer class="w-full border-t border-[#A87952]/15 bg-[#140D09]/90 py-4 px-6 text-center text-[11px] text-[#D8C4A3]/50 font-light select-none">
+        {lang === 'ar' ? (
+          <p>
+            بوابة إدارة ألور سبا — جلسة مشفرة ومحمية تشفيرياً (Argon2id + SHA-256 + RBAC) · الرياض، المملكة العربية السعودية
+          </p>
+        ) : (
+          <p>
+            ALOR SPA Official Administration Portal — Protected & Audited (Argon2id + SHA-256 + RBAC) · Riyadh, KSA
+          </p>
+        )}
+      </footer>
+    </div>
+
+    <!-- Client-side Shell Interactivity Scripts -->
+    <script is:inline>
+      document.addEventListener('DOMContentLoaded', () => {
+        // 1. Sidebar desktop collapse state persistence
+        const sidebar = document.getElementById('admin-sidebar');
+        const desktopToggle = document.getElementById('admin-desktop-collapse-toggle');
+        const savedCollapsed = localStorage.getItem('alor_admin_sidebar_collapsed') === 'true';
+
+        if (sidebar && savedCollapsed) {
+          sidebar.setAttribute('data-collapsed', 'true');
+        }
+
+        desktopToggle?.addEventListener('click', () => {
+          if (!sidebar) return;
+          const isCollapsed = sidebar.getAttribute('data-collapsed') === 'true';
+          const newState = (!isCollapsed).toString();
+          sidebar.setAttribute('data-collapsed', newState);
+          localStorage.setItem('alor_admin_sidebar_collapsed', newState);
+        });
+
+        // 2. Mobile drawer open/close
+        const mobileToggle = document.getElementById('admin-mobile-toggle');
+        const mobileCloseBtn = document.getElementById('admin-sidebar-close-btn');
+        const backdrop = document.getElementById('admin-sidebar-backdrop');
+
+        function openMobileSidebar() {
+          sidebar?.classList.remove('-translate-x-full', 'rtl:translate-x-full');
+          backdrop?.classList.remove('hidden');
+        }
+
+        function closeMobileSidebar() {
+          sidebar?.classList.add('-translate-x-full', 'rtl:translate-x-full');
+          backdrop?.classList.add('hidden');
+        }
+
+        mobileToggle?.addEventListener('click', openMobileSidebar);
+        mobileCloseBtn?.addEventListener('click', closeMobileSidebar);
+        backdrop?.addEventListener('click', closeMobileSidebar);
+
+        // 3. Language switcher handler
+        const langToggle = document.getElementById('admin-lang-toggle');
+        langToggle?.addEventListener('click', () => {
+          const targetLang = langToggle.getAttribute('data-target-lang') || 'ar';
+          document.cookie = `alor_admin_lang=${targetLang}; path=/; max-age=${30 * 24 * 60 * 60}; SameSite=Lax`;
+          const url = new URL(window.location.href);
+          url.searchParams.set('lang', targetLang);
+          window.location.href = url.toString();
+        });
+
+        // 4. Secure Logout Handler
+        const logoutBtn = document.getElementById('header-logout-btn');
+        logoutBtn?.addEventListener('click', async () => {
+          if (logoutBtn.disabled) return;
+          logoutBtn.disabled = true;
+          logoutBtn.classList.add('opacity-50');
+
+          try {
+            await fetch('/api/admin/auth/logout', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Alor-Admin-Action': '1',
+              },
+            });
+          } catch (e) {
+            console.error('Logout error:', e);
+          } finally {
+            window.location.href = '/admin/login';
+          }
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,214 @@
+---
+import '../styles/global.css';
+import { getLangFromUrl, getDirection, useTranslations, getLocalizedPath, getAlternateLang } from '../i18n/utils';
+import { siteConfig, getSchemaTelephone, getSiteUrl } from '../config/site';
+
+interface Props {
+  title?: string;
+  description?: string;
+  ogImage?: string;
+  canonicalPath?: string;
+  alternatePath?: string;
+  structuredData?: Record<string, any> | Array<Record<string, any>>;
+  noindex?: boolean;
+}
+
+const lang = getLangFromUrl(Astro.url);
+const dir = getDirection(lang);
+const t = useTranslations(lang);
+const altLang = getAlternateLang(lang);
+
+const {
+  title = t('site.title'),
+  description = t('site.description'),
+  ogImage = '/images/hero/hero-bg.jpg',
+  canonicalPath,
+  alternatePath,
+  structuredData,
+  noindex = false,
+} = Astro.props;
+
+const siteBaseUrl = Astro.site?.toString().replace(/\/$/, '') || getSiteUrl();
+
+// Canonical URL Resolution
+const currentPathname = canonicalPath || Astro.url.pathname;
+const normalizedCurrentPath = currentPathname === '/' ? '/' : currentPathname.replace(/\/$/, '');
+const canonicalURL = new URL(normalizedCurrentPath, siteBaseUrl);
+
+// Multilingual Alternate Paths (Arabic default, English secondary)
+let computedAltPath = '/';
+if (lang === 'ar') {
+  computedAltPath = normalizedCurrentPath === '/' ? '/en/' : `/en${normalizedCurrentPath}`;
+} else {
+  computedAltPath = normalizedCurrentPath.replace(/^\/en(\/|$)/, '$1') || '/';
+}
+const resolvedAltPath = alternatePath || computedAltPath;
+const normalizedAltPath = resolvedAltPath === '/' ? '/' : resolvedAltPath.replace(/\/$/, '');
+const altURL = new URL(normalizedAltPath, siteBaseUrl);
+
+// x-default points to the primary Arabic version of the resource
+const xDefaultURL = lang === 'ar' ? canonicalURL : altURL;
+
+const ogImageURL = new URL(ogImage, siteBaseUrl);
+const logoURL = new URL('/favicon.svg', siteBaseUrl);
+
+// Confirmed Schema.org Graph Data (Zero fake reviews, hours, or coordinates)
+const telephone = getSchemaTelephone();
+
+const webSiteSchema = {
+  '@type': 'WebSite',
+  '@id': `${siteBaseUrl}/#website`,
+  url: siteBaseUrl,
+  name: 'ALOR SPA',
+  alternateName: siteConfig.name.ar,
+  inLanguage: ['ar', 'en'],
+};
+
+const localBusinessSchema: Record<string, any> = {
+  '@type': ['BeautySalon', 'DaySpa'],
+  '@id': `${siteBaseUrl}/#organization`,
+  name: lang === 'ar' ? siteConfig.name.ar : siteConfig.name.en,
+  alternateName: 'ALOR SPA',
+  description: description,
+  url: siteBaseUrl,
+  logo: logoURL.toString(),
+  image: ogImageURL.toString(),
+  priceRange: '$$$',
+  currenciesAccepted: 'SAR',
+  paymentAccepted: 'Cash, Credit Card, Mada, Apple Pay',
+  ...(telephone ? { telephone } : {}),
+  address: {
+    '@type': 'PostalAddress',
+    addressLocality: 'Riyadh',
+    addressRegion: 'Riyadh Province',
+    addressCountry: 'SA',
+  },
+  areaServed: {
+    '@type': 'City',
+    name: lang === 'ar' ? 'الرياض' : 'Riyadh',
+  },
+  amenityFeature: [
+    {
+      '@type': 'LocationFeatureSpecification',
+      name: 'Women Only Sanctuary',
+      value: true,
+    },
+    {
+      '@type': 'LocationFeatureSpecification',
+      name: 'Private Treatment Suites',
+      value: true,
+    },
+    {
+      '@type': 'LocationFeatureSpecification',
+      name: 'Moroccan Hammam Bath',
+      value: true,
+    },
+  ],
+};
+
+const webPageSchema = {
+  '@type': 'WebPage',
+  '@id': `${canonicalURL.toString()}#webpage`,
+  url: canonicalURL.toString(),
+  name: title,
+  description: description,
+  inLanguage: lang === 'ar' ? 'ar' : 'en',
+  isPartOf: {
+    '@id': `${siteBaseUrl}/#website`,
+  },
+  about: {
+    '@id': `${siteBaseUrl}/#organization`,
+  },
+};
+
+const pageStructuredDataList = structuredData
+  ? Array.isArray(structuredData)
+    ? structuredData
+    : [structuredData]
+  : [];
+
+const fullJsonLdGraph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    webSiteSchema,
+    localBusinessSchema,
+    webPageSchema,
+    ...pageStructuredDataList,
+  ],
+};
+
+const robotsContent = noindex
+  ? 'noindex, nofollow'
+  : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1';
+---
+
+<!doctype html>
+<html lang={lang} dir={dir} class="scroll-smooth">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#38251F" />
+    <meta name="color-scheme" content="light" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" href="/favicon.ico" />
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+
+    <!-- SEO Meta Tags -->
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <meta name="keywords" content={t('site.keywords')} />
+    <meta name="author" content="ALOR SPA" />
+    <meta name="robots" content={robotsContent} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={canonicalURL} />
+
+    <!-- i18n alternate links (hreflang) -->
+    <link rel="alternate" hreflang={lang} href={canonicalURL} />
+    <link rel="alternate" hreflang={altLang} href={altURL} />
+    <link rel="alternate" hreflang="x-default" href={xDefaultURL} />
+
+    <!-- Google Fonts: Latin + Arabic -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+Arabic:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Tajawal:wght@300;400;500;700;800&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonicalURL} />
+    <meta property="og:image" content={ogImageURL} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={title} />
+    <meta property="og:locale" content={lang === 'ar' ? 'ar_SA' : 'en_US'} />
+    <meta property="og:locale:alternate" content={lang === 'ar' ? 'en_US' : 'ar_SA'} />
+    <meta property="og:site_name" content="ALOR SPA" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageURL} />
+    <meta name="twitter:image:alt" content={title} />
+
+    <!-- Unified Schema.org JSON-LD (BeautySalon, WebSite, WebPage, Services) -->
+    <script type="application/ld+json" set:html={JSON.stringify(fullJsonLdGraph)} />
+  </head>
+  <body class="min-h-screen bg-ivory-50 text-chocolate-800 antialiased selection:bg-bronze-200 selection:text-chocolate-900">
+    <!-- Accessible Skip Link -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:start-4 focus:z-50 focus:rounded-pill focus:bg-bronze-500 focus:px-6 focus:py-3 focus:font-semibold focus:text-ivory-50 focus:shadow-elevated focus:outline-none"
+    >
+      {lang === 'ar' ? 'تخطي إلى المحتوى الرئيسي' : 'Skip to main content'}
+    </a>
+
+    <slot />
+  </body>
+</html>

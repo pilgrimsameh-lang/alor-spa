@@ -1,0 +1,635 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import { getDb } from '../../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const bookingsRes = await client.execute(`
+  SELECT 
+    b.*,
+    s.title_ar as service_db_title_ar,
+    s.title_en as service_db_title_en
+  FROM booking_requests b
+  LEFT JOIN services s ON b.service_id = s.id
+  ORDER BY b.created_at DESC;
+`);
+
+const bookingsList = bookingsRes.rows;
+
+const newCount = bookingsList.filter((b) => b.status === 'new').length;
+const followingUpCount = bookingsList.filter((b) => b.status === 'following_up').length;
+const contactedCount = bookingsList.filter((b) => b.status === 'contacted').length;
+const confirmedCount = bookingsList.filter((b) => b.status === 'confirmed').length;
+const cancelledCount = bookingsList.filter((b) => b.status === 'cancelled').length;
+
+const statusLabels: Record<string, { ar: string; en: string; badgeClass: string; dotClass: string }> = {
+  new: {
+    ar: 'جديد',
+    en: 'New',
+    badgeClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+    dotClass: 'bg-amber-400',
+  },
+  following_up: {
+    ar: 'جاري المتابعة',
+    en: 'Following Up',
+    badgeClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',
+    dotClass: 'bg-blue-400',
+  },
+  contacted: {
+    ar: 'تم التواصل',
+    en: 'Contacted',
+    badgeClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',
+    dotClass: 'bg-purple-400',
+  },
+  confirmed: {
+    ar: 'مؤكد',
+    en: 'Confirmed',
+    badgeClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30',
+    dotClass: 'bg-emerald-400',
+  },
+  cancelled: {
+    ar: 'ملغي',
+    en: 'Cancelled',
+    badgeClass: 'bg-stone-500/20 text-stone-400 border-stone-500/30',
+    dotClass: 'bg-stone-400',
+  },
+};
+---
+
+<AdminLayout title={isRtl ? 'طلبات الحجز والتواصل' : 'Booking & Contact Requests'} requiredPermission="services:read">
+  <!-- Header -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'طلبات الحجز والتواصل' : 'Booking & Contact Requests'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl ? 'متابعة حجوزات ضيفات السبا الواردة من الموقع وتأكيد المواعيد عبر واتساب' : 'Track and manage guest booking inquiries with instant WhatsApp integration'}
+      </p>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <!-- Unreviewed Notification Badge -->
+      {newCount > 0 && (
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-amber-500/20 border border-amber-500/40 text-amber-300 animate-pulse">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span>{isRtl ? `${newCount} طلبات جديدة بحاجة للمراجعة` : `${newCount} New Unreviewed Requests`}</span>
+        </span>
+      )}
+
+      <span class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#A87952]/25 text-[#D8C4A3]">
+        <span class="text-[#C5A880] font-bold" id="bookings-count-badge">{bookingsList.length}</span>
+        <span>{isRtl ? 'إجمالي الطلبات' : 'Total Requests'}</span>
+      </span>
+    </div>
+  </div>
+
+  <!-- Status Filter Tabs -->
+  <div class="flex items-center gap-2 mb-6 border-b border-[#A87952]/20 pb-4 overflow-x-auto">
+    <button
+      type="button"
+      class="booking-tab-btn active px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer bg-[#38251F] text-[#FAF7F2] border border-[#C5A880]/40"
+      data-filter="all"
+    >
+      <span>{isRtl ? 'الكل' : 'All'}</span>
+      <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-[#140D09] text-[#C5A880]">{bookingsList.length}</span>
+    </button>
+
+    <button
+      type="button"
+      class="booking-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+      data-filter="new"
+    >
+      <span>{isRtl ? 'جديد' : 'New'}</span>
+      <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-bold">{newCount}</span>
+    </button>
+
+    <button
+      type="button"
+      class="booking-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+      data-filter="following_up"
+    >
+      <span>{isRtl ? 'جاري المتابعة' : 'Following Up'}</span>
+      <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-blue-500/20 text-blue-300 font-bold">{followingUpCount}</span>
+    </button>
+
+    <button
+      type="button"
+      class="booking-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+      data-filter="contacted"
+    >
+      <span>{isRtl ? 'تم التواصل' : 'Contacted'}</span>
+      <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-purple-500/20 text-purple-300 font-bold">{contactedCount}</span>
+    </button>
+
+    <button
+      type="button"
+      class="booking-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+      data-filter="confirmed"
+    >
+      <span>{isRtl ? 'مؤكد' : 'Confirmed'}</span>
+      <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">{confirmedCount}</span>
+    </button>
+
+    <button
+      type="button"
+      class="booking-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+      data-filter="cancelled"
+    >
+      <span>{isRtl ? 'ملغي' : 'Cancelled'}</span>
+      <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-stone-500/20 text-stone-400 font-bold">{cancelledCount}</span>
+    </button>
+  </div>
+
+  <!-- Search & Date Filter Bar -->
+  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+    <div class="sm:col-span-2">
+      <input
+        type="text"
+        id="booking-search-input"
+        placeholder={isRtl ? 'بحث باسم العميلة أو رقم الجوال أو رقم الطلب...' : 'Search by client name, phone, or reference number...'}
+        class="w-full px-4 py-2.5 rounded-xl bg-[#1C130D] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none placeholder-[#D8C4A3]/40"
+      />
+    </div>
+    <div>
+      <input
+        type="date"
+        id="booking-date-filter"
+        class="w-full px-4 py-2.5 rounded-xl bg-[#1C130D] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"
+      />
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div id="booking-toast" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span id="booking-toast-icon"></span>
+      <span id="booking-toast-msg" class="text-xs font-medium"></span>
+    </div>
+    <button type="button" onclick="document.getElementById('booking-toast').classList.add('hidden')" class="text-xs opacity-70 hover:opacity-100">✕</button>
+  </div>
+
+  <!-- Bookings Table or Empty State -->
+  {bookingsList.length === 0 ? (
+    <div id="bookings-empty-container">
+      <EmptyState
+        title={isRtl ? 'لا توجد طلبات حجز حالياً' : 'No Booking Requests Found'}
+        description={isRtl
+          ? 'ستظهر هنا طلبات الحجز والاستفسارات الواردة من عميلات الموقع فور تقديمها.'
+          : 'Client booking inquiries submitted from the website will appear here in real-time.'}
+        actionText={isRtl ? 'زيارة صفحة الحجز' : 'Visit Booking Section'}
+        actionHref="/#contact"
+        lang={lang}
+      />
+    </div>
+  ) : (
+    <div class="rounded-2xl border border-[#A87952]/20 bg-[#1C130D]/70 overflow-hidden shadow-xl backdrop-blur-sm">
+      <div class="overflow-x-auto">
+        <table class="w-full text-start border-collapse" id="bookings-table">
+          <thead>
+            <tr class="border-b border-[#A87952]/20 bg-[#140D09]/80 text-[#D8C4A3]/70 text-[11px] uppercase tracking-wider font-semibold">
+              <th class="py-4 px-6 text-start">{isRtl ? 'رقم الطلب' : 'Reference'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'العميلة' : 'Client'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'رقم الجوال' : 'Phone'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'الخدمة المطلوبة' : 'Service'}</th>
+              <th class="py-4 px-6 text-start">{isRtl ? 'الموعد المفضل' : 'Preferred Date & Time'}</th>
+              <th class="py-4 px-6 text-center">{isRtl ? 'الحالة' : 'Status'}</th>
+              <th class="py-4 px-6 text-center">{isRtl ? 'الإجراءات' : 'Actions'}</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-[#A87952]/10 text-xs">
+            {bookingsList.map((item) => {
+              const statusCfg = statusLabels[item.status as string] || statusLabels.new;
+              const dateCreated = new Date(Number(item.created_at)).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              });
+
+              return (
+                <tr
+                  class="booking-row hover:bg-[#241814]/60 transition-colors"
+                  data-id={item.id}
+                  data-status={item.status}
+                  data-ref={item.request_number}
+                  data-name={item.client_name}
+                  data-phone={item.client_phone}
+                  data-date={item.preferred_date}
+                  data-json={JSON.stringify(item)}
+                >
+                  <td class="py-4 px-6">
+                    <span class="font-mono font-bold text-[#C5A880] tracking-wide">{item.request_number}</span>
+                    <div class="text-[10px] text-[#D8C4A3]/50">{dateCreated}</div>
+                  </td>
+                  <td class="py-4 px-6 font-semibold text-[#FAF7F2]">
+                    {item.client_name}
+                  </td>
+                  <td class="py-4 px-6 text-[#D8C4A3] font-mono text-start" dir="ltr">
+                    {item.client_phone}
+                  </td>
+                  <td class="py-4 px-6 text-[#D8C4A3]">
+                    {item.service_name}
+                  </td>
+                  <td class="py-4 px-6 text-[#D8C4A3]">
+                    <div>{item.preferred_date}</div>
+                    <div class="text-[11px] text-[#C5A880] font-medium">{item.preferred_time}</div>
+                  </td>
+                  <td class="py-4 px-6 text-center">
+                    <span class:list={[
+                      'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-semibold border',
+                      statusCfg.badgeClass
+                    ]}>
+                      <span class:list={['w-1.5 h-1.5 rounded-full', statusCfg.dotClass]}></span>
+                      <span>{isRtl ? statusCfg.ar : statusCfg.en}</span>
+                    </span>
+                  </td>
+                  <td class="py-4 px-6 text-center">
+                    <div class="flex items-center justify-center gap-2">
+                      <button
+                        type="button"
+                        class="view-booking-btn px-3 py-1.5 rounded-xl text-xs font-semibold bg-[#38251F] text-[#FAF7F2] hover:bg-[#A87952] border border-[#C5A880]/30 transition-colors cursor-pointer"
+                        title={isRtl ? 'عرض وتحديث الطلب' : 'View & Update'}
+                      >
+                        {isRtl ? 'التفاصيل' : 'Details'}
+                      </button>
+
+                      <button
+                        type="button"
+                        class="delete-booking-btn p-1.5 rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors cursor-pointer"
+                        title={isRtl ? 'حذف الطلب' : 'Delete Request'}
+                        data-id={item.id}
+                        data-ref={item.request_number}
+                      >
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  )}
+
+  <!-- Booking Detail & Action Modal -->
+  <div id="booking-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl">
+      <!-- Modal Header -->
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#38251F] to-[#140D09] border border-[#C5A880]/30 flex items-center justify-center text-[#C5A880]">
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+          </div>
+          <div>
+            <h3 class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+              {isRtl ? 'تفاصيل طلب الحجز' : 'Booking Request Details'}
+            </h3>
+            <span class="font-mono text-xs text-[#C5A880]" id="modal-booking-ref">ALOR-BK-2026-XXXX</span>
+          </div>
+        </div>
+        <button type="button" id="close-booking-modal-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="p-6 space-y-5 text-xs max-h-[75vh] overflow-y-auto">
+        <!-- Client Info Grid -->
+        <div class="grid grid-cols-2 gap-4 p-4 rounded-xl bg-[#140D09] border border-[#A87952]/20">
+          <div>
+            <span class="text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'اسم العميلة' : 'Client Name'}</span>
+            <span class="font-bold text-sm text-[#FAF7F2]" id="modal-client-name"></span>
+          </div>
+          <div>
+            <span class="text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'رقم الجوال' : 'Phone Number'}</span>
+            <span class="font-mono font-bold text-sm text-[#C5A880]" id="modal-client-phone" dir="ltr"></span>
+          </div>
+          <div>
+            <span class="text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'الخدمة المطلوبة' : 'Requested Service'}</span>
+            <span class="font-medium text-[#FAF7F2]" id="modal-service-name"></span>
+          </div>
+          <div>
+            <span class="text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'الموعد المفضل' : 'Preferred Slot'}</span>
+            <span class="font-medium text-[#FAF7F2]" id="modal-date-time"></span>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div>
+          <span class="text-[#D8C4A3]/60 block mb-1">{isRtl ? 'ملاحظات العميلة' : 'Client Notes'}</span>
+          <p class="p-3 rounded-xl bg-[#140D09] border border-[#A87952]/20 text-[#FAF7F2] leading-relaxed min-h-[4rem]" id="modal-client-notes"></p>
+        </div>
+
+        <!-- Status & Admin Notes Form -->
+        <form id="booking-update-form" class="space-y-4 pt-2 border-t border-[#A87952]/20">
+          <input type="hidden" id="modal-booking-id" />
+
+          <div>
+            <label class="block text-xs font-semibold text-[#D8C4A3] mb-1.5">{isRtl ? 'تحديث حالة الطلب' : 'Update Status'}</label>
+            <select
+              id="modal-status-select"
+              class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"
+            >
+              <option value="new">{isRtl ? 'جديد (New)' : 'New'}</option>
+              <option value="following_up">{isRtl ? 'جاري المتابعة (Following Up)' : 'Following Up'}</option>
+              <option value="contacted">{isRtl ? 'تم التواصل (Contacted)' : 'Contacted'}</option>
+              <option value="confirmed">{isRtl ? 'مؤكد (Confirmed)' : 'Confirmed'}</option>
+              <option value="cancelled">{isRtl ? 'ملغي (Cancelled)' : 'Cancelled'}</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[#D8C4A3] mb-1.5">{isRtl ? 'ملاحظات الإدارة الداخلية' : 'Internal Admin Notes'}</label>
+            <textarea
+              id="modal-admin-notes"
+              rows="2"
+              placeholder={isRtl ? 'اكتبي أي ملاحظات داخلية لموظفات الاستقبال...' : 'Internal notes for reception staff...'}
+              class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"
+            ></textarea>
+          </div>
+
+          <div class="flex justify-end">
+            <button
+              type="submit"
+              id="save-booking-status-btn"
+              class="px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] cursor-pointer shadow-md"
+            >
+              {isRtl ? 'حفظ التعديلات' : 'Save Changes'}
+            </button>
+          </div>
+        </form>
+
+        <!-- Smart WhatsApp Integration Buttons -->
+        <div class="pt-4 border-t border-[#A87952]/20 space-y-3">
+          <span class="text-[11px] font-semibold text-[#C5A880] uppercase tracking-wider block">
+            {isRtl ? 'إجراءات واتساب الذكية' : 'Smart WhatsApp Actions'}
+          </span>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <!-- Button 1: Follow up with client -->
+            <a
+              id="wa-followup-client-btn"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition-colors shadow-md text-center"
+            >
+              <svg class="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+              <span>{isRtl ? 'متابعة الحجز عبر واتساب' : 'Follow up with Client'}</span>
+            </a>
+
+            <!-- Button 2: Send order to Spa Center Official WhatsApp (966553543192) -->
+            <a
+              id="wa-forward-spa-btn"
+              href="#"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-[#241814] border border-[#C5A880]/50 hover:bg-[#38251F] text-[#FAF7F2] transition-colors shadow-md text-center"
+            >
+              <svg class="w-4 h-4 text-[#C5A880] shrink-0" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+              </svg>
+              <span>{isRtl ? 'إرسال تفاصيل الطلب إلى واتساب المركز' : 'Send to Spa WhatsApp'}</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Booking Modal -->
+  <div id="booking-delete-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-[#FAF7F2] mb-2 font-['Amiri',serif]">
+        {isRtl ? 'تأكيد حذف طلب الحجز' : 'Confirm Deletion'}
+      </h3>
+      <p class="text-xs text-[#D8C4A3]/80 mb-6 leading-relaxed">
+        {isRtl ? 'هل أنتِ متأكدة من حذف طلب الحجز رقم' : 'Are you sure you want to delete booking request'}
+        <strong id="delete-booking-ref" class="text-[#FAF7F2] font-mono"></strong>؟
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" id="cancel-booking-delete-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+          {isRtl ? 'إلغاء' : 'Cancel'}
+        </button>
+        <button type="button" id="confirm-booking-delete-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-md">
+          {isRtl ? 'نعم، حذف' : 'Yes, Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('booking-modal');
+      const deleteModal = document.getElementById('booking-delete-modal');
+      const toast = document.getElementById('booking-toast');
+      const toastMsg = document.getElementById('booking-toast-msg');
+      const toastIcon = document.getElementById('booking-toast-icon');
+
+      function showToast(message, isSuccess = true) {
+        toast.className = `fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between ${
+          isSuccess ? 'bg-[#142617] border-emerald-500/50 text-emerald-200' : 'bg-[#2b1111] border-red-500/50 text-red-200'
+        }`;
+        toastIcon.textContent = isSuccess ? '✓' : '✗';
+        toastMsg.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+      }
+
+      // Filter Tabs
+      const tabBtns = document.querySelectorAll('.booking-tab-btn');
+      const rows = document.querySelectorAll('.booking-row');
+      const searchInput = document.getElementById('booking-search-input');
+      const dateFilter = document.getElementById('booking-date-filter');
+
+      let currentTabFilter = 'all';
+
+      function applyFilters() {
+        const searchTerm = (searchInput?.value || '').toLowerCase().trim();
+        const selectedDate = dateFilter?.value || '';
+
+        rows.forEach((row) => {
+          const status = row.getAttribute('data-status') || '';
+          const ref = (row.getAttribute('data-ref') || '').toLowerCase();
+          const name = (row.getAttribute('data-name') || '').toLowerCase();
+          const phone = (row.getAttribute('data-phone') || '').toLowerCase();
+          const date = row.getAttribute('data-date') || '';
+
+          const matchTab = currentTabFilter === 'all' || status === currentTabFilter;
+          const matchSearch = !searchTerm || ref.includes(searchTerm) || name.includes(searchTerm) || phone.includes(searchTerm);
+          const matchDate = !selectedDate || date === selectedDate;
+
+          if (matchTab && matchSearch && matchDate) {
+            row.style.display = '';
+          } else {
+            row.style.display = 'none';
+          }
+        });
+      }
+
+      tabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach((b) => {
+            b.classList.remove('bg-[#38251F]', 'text-[#FAF7F2]', 'border-[#C5A880]/40');
+            b.classList.add('text-[#D8C4A3]/70', 'border-transparent');
+          });
+          btn.classList.add('bg-[#38251F]', 'text-[#FAF7F2]', 'border-[#C5A880]/40');
+          btn.classList.remove('text-[#D8C4A3]/70', 'border-transparent');
+
+          currentTabFilter = btn.getAttribute('data-filter') || 'all';
+          applyFilters();
+        });
+      });
+
+      searchInput?.addEventListener('input', applyFilters);
+      dateFilter?.addEventListener('change', applyFilters);
+
+      // Clean phone number helper for WhatsApp
+      function cleanPhoneForWhatsApp(phone) {
+        let cleaned = (phone || '').replace(/[^0-9]/g, '');
+        if (cleaned.startsWith('00')) cleaned = cleaned.slice(2);
+        if (cleaned.startsWith('0')) cleaned = '966' + cleaned.slice(1);
+        if (!cleaned.startsWith('966') && cleaned.length === 9) cleaned = '966' + cleaned;
+        return cleaned;
+      }
+
+      // View Booking Details
+      let activeBooking = null;
+      document.querySelectorAll('.view-booking-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const tr = btn.closest('.booking-row');
+          if (!tr) return;
+          const item = JSON.parse(tr.getAttribute('data-json') || '{}');
+          activeBooking = item;
+
+          document.getElementById('modal-booking-id').value = item.id;
+          document.getElementById('modal-booking-ref').textContent = item.request_number;
+          document.getElementById('modal-client-name').textContent = item.client_name;
+          document.getElementById('modal-client-phone').textContent = item.client_phone;
+          document.getElementById('modal-service-name').textContent = item.service_name;
+          document.getElementById('modal-date-time').textContent = `${item.preferred_date} · ${item.preferred_time}`;
+          document.getElementById('modal-client-notes').textContent = item.notes || (document.documentElement.lang === 'en' ? 'None provided' : 'لا توجد ملاحظات إضافية مسجلة');
+          document.getElementById('modal-status-select').value = item.status;
+          document.getElementById('modal-admin-notes').value = item.admin_notes || '';
+
+          // 1. WhatsApp Button: Follow up with Client
+          const clientWaNumber = cleanPhoneForWhatsApp(item.client_phone);
+          const clientMsg = `مرحبًا ${item.client_name} 🌸\nمعكِ خدمة العملاء من ALOR SPA بخصوص طلب حجزكِ رقم (${item.request_number}) لخدمة: ${item.service_name}.\nالتاريخ المفضل: ${item.preferred_date} الساعة ${item.preferred_time}.\nيسعدنا تأكيد موعدكِ ومساعدتكِ في أي استفسار.`;
+          const clientWaBtn = document.getElementById('wa-followup-client-btn');
+          if (clientWaBtn) {
+            clientWaBtn.href = `https://wa.me/${clientWaNumber}?text=${encodeURIComponent(clientMsg)}`;
+          }
+
+          // 2. WhatsApp Button: Forward to Spa Reception Center (966553543192)
+          const spaCenterMsg = `مرحبًا ALOR SPA 🌸\n\nوصل طلب حجز جديد من الموقع:\n\nرقم الطلب: ${item.request_number}\nاسم العميلة: ${item.client_name}\nرقم الجوال: ${item.client_phone}\nالخدمة المطلوبة: ${item.service_name}\nالتاريخ المفضل: ${item.preferred_date}\nالوقت المفضل: ${item.preferred_time}\nملاحظات العميلة: ${item.notes || 'لا يوجد'}\n\nيرجى متابعة الطلب والتواصل مع العميلة لتأكيد الموعد.\n\nALOR SPA`;
+          const spaWaBtn = document.getElementById('wa-forward-spa-btn');
+          if (spaWaBtn) {
+            spaWaBtn.href = `https://wa.me/966553543192?text=${encodeURIComponent(spaCenterMsg)}`;
+          }
+
+          modal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('close-booking-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+
+      // Save Booking Status & Admin Notes Form
+      document.getElementById('booking-update-form')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('modal-booking-id').value;
+        const newStatus = document.getElementById('modal-status-select').value;
+        const adminNotes = document.getElementById('modal-admin-notes').value.trim();
+
+        const saveBtn = document.getElementById('save-booking-status-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'جاري الحفظ...';
+
+        try {
+          const res = await fetch(`/api/admin/bookings/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+            body: JSON.stringify({
+              status: newStatus,
+              admin_notes: adminNotes || null,
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشل التحديث');
+
+          showToast('تم تحديث حالة طلب الحجز بنجاح', true);
+          modal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'حفظ التعديلات';
+        }
+      });
+
+      // Delete Booking
+      let targetDeleteId = null;
+      document.querySelectorAll('.delete-booking-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          targetDeleteId = btn.getAttribute('data-id');
+          document.getElementById('delete-booking-ref').textContent = btn.getAttribute('data-ref');
+          deleteModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('cancel-booking-delete-btn')?.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+        targetDeleteId = null;
+      });
+
+      document.getElementById('confirm-booking-delete-btn')?.addEventListener('click', async () => {
+        if (!targetDeleteId) return;
+        const confirmBtn = document.getElementById('confirm-booking-delete-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'جاري الحذف...';
+
+        try {
+          const res = await fetch(`/api/admin/bookings/${encodeURIComponent(targetDeleteId)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشل الحذف');
+
+          showToast('تم حذف طلب الحجز بنجاح', true);
+          deleteModal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'نعم، حذف';
+        }
+      });
+    });
+  </script>
+</AdminLayout>

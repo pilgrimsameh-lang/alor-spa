@@ -1,0 +1,983 @@
+---
+import AdminLayout from '../../../layouts/AdminLayout.astro';
+import EmptyState from '../../../components/admin/EmptyState.astro';
+import { getDb } from '../../../server/db/index';
+import { DEMO_GUESTBOOK_REVIEWS } from '../../../data/demo-reviews';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+if (!user) return Astro.redirect('/admin/login');
+
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+const { client } = getDb();
+const [reviewsRes, servicesRes] = await Promise.all([
+  client.execute(`
+    SELECT 
+      r.*,
+      s.title_ar as service_title_ar,
+      s.title_en as service_title_en
+    FROM reviews r
+    LEFT JOIN services s ON r.service_id = s.id
+    ORDER BY r.created_at DESC;
+  `),
+  client.execute('SELECT id, title_ar, title_en FROM services ORDER BY display_order ASC;'),
+]);
+
+const reviewsList = reviewsRes.rows;
+const servicesList = servicesRes.rows;
+
+const pendingCount = reviewsList.filter((r) => Number(r.is_approved) === 0).length;
+const approvedCount = reviewsList.filter((r) => Number(r.is_approved) === 1).length;
+const rejectedCount = reviewsList.filter((r) => Number(r.is_approved) === -1).length;
+---
+
+<AdminLayout title={isRtl ? 'سجل ضيفات ALOR SPA والتقييمات' : 'Guestbook & Reviews Moderation'} requiredPermission="reviews:read">
+  <!-- Page Header -->
+  <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
+    <div>
+      <h1 class="text-2xl sm:text-3xl font-bold font-['Amiri',serif] text-[#FAF7F2] mb-1">
+        {isRtl ? 'سجل ضيفات ALOR SPA وإدارة المراجعات' : 'ALOR SPA Guestbook & Reviews'}
+      </h1>
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/70 font-light">
+        {isRtl
+          ? 'عرض بطاقات سجل الضيفات التجريبية، واعتماد تقييمات العميلات الحقيقية وضبط النشر'
+          : 'Manage guestbook preview models, moderate verified reviews, and control public visibility'}
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+      <!-- Add Review Button -->
+      <button
+        type="button"
+        id="open-add-review-btn"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] transition-all shadow-md shadow-[#A87952]/20 cursor-pointer"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+        </svg>
+        <span>{isRtl ? 'إضافة مراجعة موثقة' : 'Add Review'}</span>
+      </button>
+
+      <!-- Load 20 models into DB on demand -->
+      <button
+        type="button"
+        id="seed-test-reviews-btn"
+        class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-[#241814] border border-[#C5A880]/30 text-[#D8C4A3] hover:border-[#C5A880] hover:text-[#FAF7F2] transition-colors cursor-pointer shadow-sm"
+        title={isRtl ? 'تحميل النماذج الـ 20 كمسودات في قاعدة البيانات' : 'Load 20 models as drafts in SQLite'}
+      >
+        <svg class="w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+        </svg>
+        <span>{isRtl ? 'حفظ النماذج كمسودات' : 'Sync 20 Drafts to DB'}</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Primary View Switcher: Guestbook Cards View vs Live Table View -->
+  <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-[#140D09] border border-[#A87952]/25 mb-8 w-fit max-w-full overflow-x-auto">
+    <button
+      type="button"
+      id="tab-view-guestbook"
+      class="view-toggle-btn active flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer bg-[#38251F] text-[#FAF7F2] border border-[#C5A880]/40 shadow-sm"
+    >
+      <svg class="w-4 h-4 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+      </svg>
+      <span>{isRtl ? 'بطاقات «سجل ضيفات ALOR SPA» (20 نموذج تجريبي)' : 'ALOR SPA Guestbook (20 Demo Cards)'}</span>
+      <span class="px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-mono font-bold">20 Demo</span>
+    </button>
+
+    <button
+      type="button"
+      id="tab-view-table"
+      class="view-toggle-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D]"
+    >
+      <svg class="w-4 h-4 text-[#A87952]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+      </svg>
+      <span>{isRtl ? 'جدول المراجعات والاعتماد' : 'Moderation Table'}</span>
+      <span class="px-2 py-0.5 rounded-full text-[10px] bg-[#241814] text-[#C5A880] font-mono font-bold">{reviewsList.length}</span>
+    </button>
+  </div>
+
+  <!-- Toast -->
+  <div id="review-toast" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <span id="review-toast-icon"></span>
+      <span id="review-toast-msg" class="text-xs font-medium"></span>
+    </div>
+    <button type="button" onclick="document.getElementById('review-toast').classList.add('hidden')" class="text-xs opacity-70 hover:opacity-100">✕</button>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 1: «سجل ضيفات ALOR SPA» (20 بطاقة تجريبية فاخرة Demo / Draft)      -->
+  <!-- ===================================================================== -->
+  <div id="guestbook-cards-section" class="space-y-6">
+    <!-- Informational Security & Privacy Notice Banner -->
+    <div class="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#241814] via-[#1C130D] to-[#140D09] border border-[#C5A880]/30 shadow-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div class="flex items-start sm:items-center gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-[#FAF7F2]">
+            {isRtl ? 'سجل ضيفات ALOR SPA — نماذج تجريبية فاخرة (Demo / Draft)' : 'ALOR SPA Guestbook — Demo / Draft Models'}
+          </h3>
+          <p class="text-xs text-[#D8C4A3]/75 leading-relaxed">
+            {isRtl
+              ? 'هذه البطاقات الـ 20 نماذج تجريبية مخصصة لاختبار التصميم وتجربة المستخدم الإدارية فقط، وليست شهادات لعميلات حقيقيات، ولا تُنشر للزائرات مطلقاً. تظهر للزائرات فقط التقييمات الحقيقية المقبولة. يمكنك استبدال أي نموذج بتقييم حقيقي بسهولة.'
+              : 'These 20 cards are demo models for layout and admin UX testing only. They are not real client testimonials and are NEVER published to visitors. You can easily replace any model with a genuine review.'}
+          </p>
+        </div>
+      </div>
+
+      <div class="shrink-0 flex items-center gap-2">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-pill text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+          <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+          <span>{isRtl ? 'حالة النماذج: Demo / Draft' : 'Status: Demo / Draft'}</span>
+        </span>
+      </div>
+    </div>
+
+    <!-- 20 Demo Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      {DEMO_GUESTBOOK_REVIEWS.map((card, idx) => (
+        <div
+          class="demo-review-card rounded-2xl bg-[#1C130D]/85 border border-[#A87952]/30 hover:border-[#C5A880]/60 p-6 flex flex-col justify-between shadow-xl backdrop-blur-sm transition-all duration-300 hover:shadow-[#A87952]/10 hover:-translate-y-0.5 group"
+          data-demo-id={card.id}
+          data-card-json={JSON.stringify(card)}
+        >
+          <div>
+            <!-- Card Header: Avatar, Name & Topic Tag -->
+            <div class="flex items-start justify-between gap-3 mb-4">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-full bg-gradient-to-br from-[#A87952] to-[#7A5230] text-[#FAF7F2] font-bold text-sm flex items-center justify-center shrink-0 border border-[#C5A880]/40 shadow-inner">
+                  {card.name.slice(0, 1)}
+                </div>
+                <div>
+                  <h4 class="font-heading font-bold text-base text-[#FAF7F2] group-hover:text-[#C5A880] transition-colors">
+                    {card.name}
+                  </h4>
+                  <span class="text-[10px] text-[#C5A880] font-medium block">
+                    {isRtl ? card.topicAr : card.topicEn}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Status Badge: Demo / Draft -->
+              <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 shrink-0">
+                <span>Demo</span>
+              </span>
+            </div>
+
+            <!-- Star Rating: 5 Gold Stars -->
+            <div class="flex items-center gap-1 mb-3.5 text-[#C5A880]" aria-label="5 out of 5 stars">
+              {[1, 2, 3, 4, 5].map(() => (
+                <svg class="w-4 h-4 fill-[#C5A880] text-[#C5A880]" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                </svg>
+              ))}
+            </div>
+
+            <!-- Arabic Natural Review Comment -->
+            <p class="text-xs font-['Tajawal',sans-serif] text-[#FAF7F2]/90 leading-relaxed italic mb-5 line-clamp-4 group-hover:line-clamp-none transition-all">
+              “{isRtl ? card.quoteAr : card.quoteEn}”
+            </p>
+          </div>
+
+          <!-- Card Actions: Replace with Real Review / View Details -->
+          <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-between gap-2 text-xs">
+            <button
+              type="button"
+              class="replace-demo-btn inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] transition-all cursor-pointer shadow-sm"
+              data-id={card.id}
+              data-name={card.name}
+              data-topic={card.topicAr}
+              data-quote={card.quoteAr}
+            >
+              <svg class="w-3.5 h-3.5 text-[#FAF7F2]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              <span>{isRtl ? 'استبدال بتقييم حقيقي' : 'Replace with Real'}</span>
+            </button>
+
+            <button
+              type="button"
+              class="view-demo-modal-btn p-1.5 rounded-lg text-[#C5A880] hover:bg-[#38251F] hover:text-[#FAF7F2] transition-colors cursor-pointer"
+              title={isRtl ? 'عرض بطاقة النموذج بالكامل' : 'View Full Card'}
+              data-id={card.id}
+              data-name={card.name}
+              data-topic={card.topicAr}
+              data-quote-ar={card.quoteAr}
+              data-quote-en={card.quoteEn}
+            >
+              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- VIEW 2: جدول المراجعات والاعتماد (Reviews Moderation Queue)             -->
+  <!-- ===================================================================== -->
+  <div id="reviews-table-section" class="hidden space-y-6">
+    <!-- Status Filter Tabs -->
+    <div class="flex items-center gap-2 border-b border-[#A87952]/20 pb-4 overflow-x-auto">
+      <button
+        type="button"
+        class="review-tab-btn active px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer bg-[#38251F] text-[#FAF7F2] border border-[#C5A880]/40"
+        data-filter="all"
+      >
+        <span>{isRtl ? 'الكل' : 'All'}</span>
+        <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-[#140D09] text-[#C5A880]">{reviewsList.length}</span>
+      </button>
+
+      <button
+        type="button"
+        class="review-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+        data-filter="pending"
+      >
+        <span>{isRtl ? 'بانتظار المراجعة' : 'Pending'}</span>
+        <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-amber-500/20 text-amber-300 font-bold">{pendingCount}</span>
+      </button>
+
+      <button
+        type="button"
+        class="review-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+        data-filter="approved"
+      >
+        <span>{isRtl ? 'معتمدة' : 'Approved'}</span>
+        <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-emerald-500/20 text-emerald-300 font-bold">{approvedCount}</span>
+      </button>
+
+      <button
+        type="button"
+        class="review-tab-btn px-4 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer text-[#D8C4A3]/70 hover:text-[#FAF7F2] hover:bg-[#1C130D] border border-transparent"
+        data-filter="rejected"
+      >
+        <span>{isRtl ? 'مرفوضة' : 'Rejected'}</span>
+        <span class="ms-1.5 px-2 py-0.5 rounded-full text-[10px] bg-red-500/20 text-red-300 font-bold">{rejectedCount}</span>
+      </button>
+    </div>
+
+    <!-- Content List or Empty State -->
+    {reviewsList.length === 0 ? (
+      <div id="reviews-empty-container">
+        <EmptyState
+          title={isRtl ? 'لا توجد تقييمات عميلات مسجلة بعد' : 'No Client Reviews Recorded'}
+          description={isRtl
+            ? 'طابور الاعتماد فارغ حالياً. يمكنك تصفح بطاقات نماذج سجل الضيفات الـ 20 التجريبية، أو إضافة تقييم موثق جديد.'
+            : 'Moderation queue is empty. Browse the 20 guestbook demo models or add a verified review.'}
+          actionText={isRtl ? 'إضافة تقييم موثق' : 'Create Verified Review'}
+          actionHref="#open-modal"
+          lang={lang}
+        />
+      </div>
+    ) : (
+      <div class="rounded-2xl border border-[#A87952]/20 bg-[#1C130D]/70 overflow-hidden shadow-xl backdrop-blur-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-start border-collapse" id="reviews-table">
+            <thead>
+              <tr class="border-b border-[#A87952]/20 bg-[#140D09]/80 text-[#D8C4A3]/70 text-[11px] uppercase tracking-wider font-semibold">
+                <th class="py-4 px-6 text-start">{isRtl ? 'صاحبة التقييم' : 'Author'}</th>
+                <th class="py-4 px-6 text-start">{isRtl ? 'الخدمة المرتبطة' : 'Service'}</th>
+                <th class="py-4 px-6 text-start">{isRtl ? 'التقييم' : 'Rating'}</th>
+                <th class="py-4 px-6 text-start">{isRtl ? 'نص التجربة' : 'Quote'}</th>
+                <th class="py-4 px-6 text-center">{isRtl ? 'الحالة' : 'Status'}</th>
+                <th class="py-4 px-6 text-center">{isRtl ? 'الإجراءات والاعتماد' : 'Moderation Actions'}</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-[#A87952]/10 text-xs">
+              {reviewsList.map((review) => {
+                const statusVal = Number(review.is_approved);
+                const statusFilterKey = statusVal === 1 ? 'approved' : (statusVal === -1 ? 'rejected' : 'pending');
+
+                return (
+                  <tr class="review-row hover:bg-[#241814]/60 transition-colors" data-review-id={review.id} data-status={statusFilterKey}>
+                    <td class="py-4 px-6">
+                      <div class="font-semibold text-[#FAF7F2]">{review.author_name}</div>
+                      <div class="text-[11px] text-[#D8C4A3]/50">{isRtl ? (review.author_title_ar || 'ضيفة ألور سبا') : (review.author_title_en || 'Guest')}</div>
+                    </td>
+                    <td class="py-4 px-6 text-[#D8C4A3]">
+                      {review.service_title_ar ? (isRtl ? review.service_title_ar : review.service_title_en) : (isRtl ? 'تجربة عامة' : 'General')}
+                    </td>
+                    <td class="py-4 px-6 text-[#C5A880] tracking-wider text-sm font-bold">
+                      {'★'.repeat(Number(review.rating) || 5)}
+                    </td>
+                    <td class="py-4 px-6 text-[#D8C4A3] max-w-xs truncate" title={review.quote_ar as string}>
+                      {isRtl ? review.quote_ar : review.quote_en}
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                      {statusVal === 1 && (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span>{isRtl ? 'معتمدة' : 'Approved'}</span>
+                        </span>
+                      )}
+                      {statusVal === 0 && (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                          <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                          <span>{isRtl ? 'بانتظار المراجعة' : 'Pending'}</span>
+                        </span>
+                      )}
+                      {statusVal === -1 && (
+                        <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20">
+                          <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span>
+                          <span>{isRtl ? 'مرفوضة' : 'Rejected'}</span>
+                        </span>
+                      )}
+                    </td>
+                    <td class="py-4 px-6 text-center">
+                      <div class="flex items-center justify-center gap-2">
+                        <!-- Accept / Approve Button -->
+                        <button
+                          type="button"
+                          class="action-accept-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-500/15 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer"
+                          title={isRtl ? 'قبول التقييم ونشره' : 'Accept and Publish Review'}
+                          data-id={review.id}
+                          data-json={JSON.stringify(review)}
+                        >
+                          ✓ {isRtl ? 'قبول' : 'Accept'}
+                        </button>
+
+                        <!-- Reject Button -->
+                        <button
+                          type="button"
+                          class="action-reject-btn px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-500/15 hover:bg-red-500/30 text-red-300 border border-red-500/30 transition-colors cursor-pointer"
+                          title={isRtl ? 'رفض التقييم' : 'Reject Review'}
+                          data-id={review.id}
+                          data-json={JSON.stringify(review)}
+                        >
+                          ✕ {isRtl ? 'رفض' : 'Reject'}
+                        </button>
+
+                        <!-- View Details Button -->
+                        <button
+                          type="button"
+                          class="view-review-btn p-1.5 rounded-lg text-[#C5A880] hover:bg-[#38251F] hover:text-[#FAF7F2] transition-colors cursor-pointer"
+                          title={isRtl ? 'عرض التفاصيل الكاملة' : 'View Full Details'}
+                          data-json={JSON.stringify(review)}
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+
+                        <!-- Delete Button -->
+                        <button
+                          type="button"
+                          class="delete-review-btn p-1.5 rounded-lg text-red-400 hover:bg-red-950/40 hover:text-red-300 transition-colors cursor-pointer"
+                          title={isRtl ? 'حذف' : 'Delete'}
+                          data-id={review.id}
+                          data-name={review.author_name}
+                        >
+                          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    )}
+  </div>
+
+  <!-- ===================================================================== -->
+  <!-- MODAL: Replace Demo Model with Real Client Review                     -->
+  <!-- ===================================================================== -->
+  <div id="replace-demo-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <div>
+          <h3 class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+            {isRtl ? 'استبدال النموذج التجريبي بتقييم حقيقي' : 'Replace Demo with Real Review'}
+          </h3>
+          <span class="text-xs text-[#C5A880]" id="replace-demo-subtitle"></span>
+        </div>
+        <button type="button" id="close-replace-modal-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+
+      <form id="replace-demo-form" class="p-6 space-y-4 text-xs">
+        <input type="hidden" id="replace-demo-id" />
+
+        <div class="p-3 rounded-xl bg-[#140D09] border border-amber-500/30 text-amber-200/90 leading-relaxed">
+          {isRtl
+            ? 'ستقومين الآن بإدخال التقييم الحقيقي الموثق للعميلة ليحل محل هذا النموذج التجريبي ويُحفظ في قاعدة البيانات مباشرة.'
+            : 'Enter genuine client review details to replace this demo card and store it permanently in SQLite.'}
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'اسم العميلة الحقيقي *' : 'Client Full Name *'}</label>
+            <input type="text" id="replace-client-name" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الخدمة المرتبطة' : 'Linked Service'}</label>
+            <select id="replace-service-id" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none">
+              <option value="">{isRtl ? '— تجربة عامة —' : '— General Experience —'}</option>
+              {servicesList.map((s) => (
+                <option value={s.id}>{isRtl ? s.title_ar : s.title_en}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'التقييم (النجوم)' : 'Rating'}</label>
+          <select id="replace-rating" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none">
+            <option value="5">★★★★★ (5/5)</option>
+            <option value="4">★★★★☆ (4/5)</option>
+            <option value="3">★★★☆☆ (3/5)</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'نص رأي العميلة الحقيقي *' : 'Authentic Review Quote *'}</label>
+          <textarea id="replace-quote-ar" rows="3" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"></textarea>
+        </div>
+
+        <div class="flex items-center gap-2 pt-2">
+          <input type="checkbox" id="replace-is-approved" checked class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+          <label for="replace-is-approved" class="text-xs text-[#FAF7F2] cursor-pointer">
+            {isRtl ? 'اعتماد ونشر فوراً في الموقع للزائرات' : 'Approve and publish immediately to visitors'}
+          </label>
+        </div>
+
+        <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-replace-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </button>
+          <button type="submit" id="confirm-replace-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-emerald-600 to-emerald-700 hover:from-emerald-500 hover:to-emerald-600 text-white cursor-pointer shadow-md">
+            ✓ {isRtl ? 'حفظ واستبدال التقييم' : 'Save & Replace'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Review Detail View Modal -->
+  <div id="review-detail-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <h3 class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+          {isRtl ? 'تفاصيل المراجعة' : 'Review Details'}
+        </h3>
+        <button type="button" id="close-review-detail-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+      <div class="p-6 space-y-4 text-xs">
+        <div class="flex items-center justify-between border-b border-[#A87952]/15 pb-3">
+          <div>
+            <span class="text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'صاحبة التقييم' : 'Author'}</span>
+            <span class="font-bold text-sm text-[#FAF7F2]" id="detail-author"></span>
+            <span class="text-[#C5A880] ms-2" id="detail-title"></span>
+          </div>
+          <div class="text-end">
+            <span class="text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'التقييم' : 'Rating'}</span>
+            <span class="text-[#C5A880] text-sm font-bold" id="detail-rating"></span>
+          </div>
+        </div>
+
+        <div>
+          <span class="text-[#D8C4A3]/60 block mb-1">{isRtl ? 'الخدمة المرتبطة' : 'Linked Service'}</span>
+          <span class="text-[#FAF7F2] font-medium" id="detail-service"></span>
+        </div>
+
+        <div>
+          <span class="text-[#D8C4A3]/60 block mb-1">{isRtl ? 'نص المراجعة (بالعربية)' : 'Arabic Quote'}</span>
+          <p class="p-3 rounded-xl bg-[#140D09] border border-[#A87952]/20 text-[#FAF7F2] leading-relaxed" id="detail-quote-ar"></p>
+        </div>
+
+        <div>
+          <span class="text-[#D8C4A3]/60 block mb-1">{isRtl ? 'نص المراجعة (بالإنجليزية)' : 'English Quote'}</span>
+          <p class="p-3 rounded-xl bg-[#140D09] border border-[#A87952]/20 text-[#D8C4A3] leading-relaxed" id="detail-quote-en"></p>
+        </div>
+
+        <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-between">
+          <span id="detail-status-badge" class="px-2.5 py-1 rounded-full text-[11px] font-semibold"></span>
+          <div class="flex items-center gap-2">
+            <button type="button" id="detail-accept-btn" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer">
+              ✓ {isRtl ? 'قبول ونشر' : 'Accept & Publish'}
+            </button>
+            <button type="button" id="detail-reject-btn" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer">
+              ✕ {isRtl ? 'رفض' : 'Reject'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add / Edit Modal -->
+  <div id="review-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-[#A87952]/40 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl">
+      <div class="p-6 border-b border-[#A87952]/20 flex items-center justify-between">
+        <h3 id="review-modal-title" class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+          {isRtl ? 'إضافة مراجعة ضيفة' : 'Add Guest Review'}
+        </h3>
+        <button type="button" id="close-review-modal-btn" class="text-[#D8C4A3]/60 hover:text-[#FAF7F2] text-xl cursor-pointer">✕</button>
+      </div>
+
+      <form id="review-form" class="p-6 space-y-4">
+        <input type="hidden" id="review-form-id" name="id" />
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'اسم صاحبة التقييم *' : 'Author Name *'}</label>
+            <input type="text" id="review-author-name" name="author_name" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الصفة / المدينة' : 'Title / City'}</label>
+            <input type="text" id="review-author-title" name="author_title_ar" placeholder="الرياض" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none" />
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'الخدمة المرتبطة' : 'Linked Service'}</label>
+            <select id="review-service-id" name="service_id" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none">
+              <option value="">{isRtl ? '— تجربة عامة —' : '— General Experience —'}</option>
+              {servicesList.map((s) => (
+                <option value={s.id}>{isRtl ? s.title_ar : s.title_en}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'التقييم (النجوم 1-5)' : 'Rating (1-5)'}</label>
+            <select id="review-rating" name="rating" class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none">
+              <option value="5">★★★★★ (5/5)</option>
+              <option value="4">★★★★☆ (4/5)</option>
+              <option value="3">★★★☆☆ (3/5)</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'نص المراجعة (عربي) *' : 'Quote (Arabic) *'}</label>
+          <textarea id="review-quote-ar" name="quote_ar" rows="3" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"></textarea>
+        </div>
+
+        <div>
+          <label class="block text-xs text-[#D8C4A3] mb-1">{isRtl ? 'نص المراجعة (إنجليزي) *' : 'Quote (English) *'}</label>
+          <textarea id="review-quote-en" name="quote_en" rows="3" required class="w-full px-3 py-2 rounded-xl bg-[#140D09] border border-[#A87952]/30 text-xs text-[#FAF7F2] focus:border-[#C5A880] focus:outline-none"></textarea>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 pt-2">
+          <label class="flex items-center gap-2 text-xs text-[#FAF7F2] cursor-pointer">
+            <input type="checkbox" id="review-is-approved" name="is_approved" checked class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+            <span>{isRtl ? 'معتمد للنشر في الموقع' : 'Approved'}</span>
+          </label>
+          <label class="flex items-center gap-2 text-xs text-[#FAF7F2] cursor-pointer">
+            <input type="checkbox" id="review-is-verified" name="is_verified" checked class="rounded border-[#A87952]/40 bg-[#140D09] text-[#C5A880] focus:ring-0" />
+            <span>{isRtl ? 'تجربة موثقة' : 'Verified Guest'}</span>
+          </label>
+        </div>
+
+        <div class="pt-4 border-t border-[#A87952]/20 flex items-center justify-end gap-3">
+          <button type="button" id="cancel-review-modal-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+            {isRtl ? 'إلغاء' : 'Cancel'}
+          </button>
+          <button type="submit" id="save-review-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-gradient-to-r from-[#A87952] to-[#7A5230] text-[#FAF7F2] hover:from-[#B88A60] hover:to-[#8C5D35] cursor-pointer shadow-md">
+            {isRtl ? 'حفظ المراجعة' : 'Save Review'}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Delete Modal -->
+  <div id="review-delete-modal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-[#1C130D] border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-2xl text-center">
+      <div class="w-12 h-12 rounded-full bg-red-950/50 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto mb-4">
+        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+        </svg>
+      </div>
+      <h3 class="text-base font-bold text-[#FAF7F2] mb-2 font-['Amiri',serif]">
+        {isRtl ? 'تأكيد حذف المراجعة' : 'Confirm Deletion'}
+      </h3>
+      <p class="text-xs text-[#D8C4A3]/80 mb-6 leading-relaxed">
+        {isRtl ? 'هل أنتِ متأكدة من حذف مراجعة' : 'Are you sure you want to delete review by'}
+        <strong id="delete-review-name" class="text-[#FAF7F2]"></strong>؟
+      </p>
+      <div class="flex items-center justify-center gap-3">
+        <button type="button" id="cancel-review-delete-btn" class="px-4 py-2 rounded-xl text-xs text-[#D8C4A3] hover:text-[#FAF7F2] cursor-pointer">
+          {isRtl ? 'إلغاء' : 'Cancel'}
+        </button>
+        <button type="button" id="confirm-review-delete-btn" class="px-5 py-2 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-700 text-white cursor-pointer shadow-md">
+          {isRtl ? 'نعم، حذف' : 'Yes, Delete'}
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script is:inline>
+    document.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById('review-modal');
+      const detailModal = document.getElementById('review-detail-modal');
+      const replaceModal = document.getElementById('replace-demo-modal');
+      const deleteModal = document.getElementById('review-delete-modal');
+      const form = document.getElementById('review-form');
+      const replaceForm = document.getElementById('replace-demo-form');
+      const toast = document.getElementById('review-toast');
+      const toastMsg = document.getElementById('review-toast-msg');
+      const toastIcon = document.getElementById('review-toast-icon');
+
+      function showToast(message, isSuccess = true) {
+        toast.className = `fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:w-96 p-4 rounded-xl shadow-2xl z-50 transition-all duration-300 border flex items-center justify-between ${
+          isSuccess ? 'bg-[#142617] border-emerald-500/50 text-emerald-200' : 'bg-[#2b1111] border-red-500/50 text-red-200'
+        }`;
+        toastIcon.textContent = isSuccess ? '✓' : '✗';
+        toastMsg.textContent = message;
+        toast.classList.remove('hidden');
+        setTimeout(() => toast.classList.add('hidden'), 4000);
+      }
+
+      // View Switcher (Cards vs Table)
+      const btnViewGuestbook = document.getElementById('tab-view-guestbook');
+      const btnViewTable = document.getElementById('tab-view-table');
+      const sectionCards = document.getElementById('guestbook-cards-section');
+      const sectionTable = document.getElementById('reviews-table-section');
+
+      btnViewGuestbook?.addEventListener('click', () => {
+        btnViewGuestbook.classList.add('bg-[#38251F]', 'text-[#FAF7F2]', 'border', 'border-[#C5A880]/40', 'shadow-sm');
+        btnViewGuestbook.classList.remove('text-[#D8C4A3]/70');
+        btnViewTable.classList.remove('bg-[#38251F]', 'text-[#FAF7F2]', 'border', 'border-[#C5A880]/40', 'shadow-sm');
+        btnViewTable.classList.add('text-[#D8C4A3]/70');
+
+        sectionCards.classList.remove('hidden');
+        sectionTable.classList.add('hidden');
+      });
+
+      btnViewTable?.addEventListener('click', () => {
+        btnViewTable.classList.add('bg-[#38251F]', 'text-[#FAF7F2]', 'border', 'border-[#C5A880]/40', 'shadow-sm');
+        btnViewTable.classList.remove('text-[#D8C4A3]/70');
+        btnViewGuestbook.classList.remove('bg-[#38251F]', 'text-[#FAF7F2]', 'border', 'border-[#C5A880]/40', 'shadow-sm');
+        btnViewGuestbook.classList.add('text-[#D8C4A3]/70');
+
+        sectionCards.classList.add('hidden');
+        sectionTable.classList.remove('hidden');
+      });
+
+      // Filter Tabs Handler (for table view)
+      const tabBtns = document.querySelectorAll('.review-tab-btn');
+      const rows = document.querySelectorAll('.review-row');
+
+      tabBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          tabBtns.forEach((b) => {
+            b.classList.remove('bg-[#38251F]', 'text-[#FAF7F2]', 'border-[#C5A880]/40');
+            b.classList.add('text-[#D8C4A3]/70', 'border-transparent');
+          });
+          btn.classList.add('bg-[#38251F]', 'text-[#FAF7F2]', 'border-[#C5A880]/40');
+          btn.classList.remove('text-[#D8C4A3]/70', 'border-transparent');
+
+          const filter = btn.getAttribute('data-filter');
+          rows.forEach((row) => {
+            const status = row.getAttribute('data-status');
+            if (filter === 'all' || status === filter) {
+              row.style.display = '';
+            } else {
+              row.style.display = 'none';
+            }
+          });
+        });
+      });
+
+      // Quick Accept Button
+      document.querySelectorAll('.action-accept-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const rev = JSON.parse(btn.getAttribute('data-json') || '{}');
+          await updateReviewStatus(rev, 1, 'تم اعتماد التقييم ونشره بنجاح');
+        });
+      });
+
+      // Quick Reject Button
+      document.querySelectorAll('.action-reject-btn').forEach((btn) => {
+        btn.addEventListener('click', async () => {
+          const rev = JSON.parse(btn.getAttribute('data-json') || '{}');
+          await updateReviewStatus(rev, -1, 'تم رفض التقييم واستبعاده من النشر');
+        });
+      });
+
+      async function updateReviewStatus(rev, newStatus, successMsg) {
+        try {
+          const res = await fetch(`/api/admin/reviews/${encodeURIComponent(rev.id)}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+            body: JSON.stringify({
+              ...rev,
+              is_approved: newStatus,
+            }),
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشلت العملية');
+          showToast(successMsg, true);
+          setTimeout(() => window.location.reload(), 600);
+        } catch (err) {
+          showToast(err.message, false);
+        }
+      }
+
+      // Replace Demo Model with Real Review
+      document.querySelectorAll('.replace-demo-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const demoId = btn.getAttribute('data-id');
+          const demoName = btn.getAttribute('data-name');
+          const demoTopic = btn.getAttribute('data-topic');
+
+          document.getElementById('replace-demo-id').value = demoId;
+          document.getElementById('replace-demo-subtitle').textContent = `النموذج المراد استبداله: (${demoName} — ${demoTopic})`;
+          document.getElementById('replace-client-name').value = '';
+          document.getElementById('replace-quote-ar').value = '';
+
+          replaceModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('close-replace-modal-btn')?.addEventListener('click', () => replaceModal.classList.add('hidden'));
+      document.getElementById('cancel-replace-btn')?.addEventListener('click', () => replaceModal.classList.add('hidden'));
+
+      replaceForm?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const demoId = document.getElementById('replace-demo-id').value;
+        const realName = document.getElementById('replace-client-name').value.trim();
+        const serviceId = document.getElementById('replace-service-id').value || null;
+        const rating = Number(document.getElementById('replace-rating').value) || 5;
+        const quoteAr = document.getElementById('replace-quote-ar').value.trim();
+        const isApproved = document.getElementById('replace-is-approved').checked ? 1 : 0;
+
+        const confirmBtn = document.getElementById('confirm-replace-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'جاري الحفظ...';
+
+        try {
+          const res = await fetch('/api/admin/reviews/replace-demo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+            body: JSON.stringify({
+              demo_id: demoId,
+              author_name: realName,
+              service_id: serviceId,
+              rating,
+              quote_ar: quoteAr,
+              quote_en: quoteAr,
+              is_approved: isApproved,
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشلت العملية');
+
+          showToast('تم استبدال النموذج بنجاح بالتقييم الحقيقي!', true);
+          replaceModal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 700);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = '✓ حفظ واستبدال التقييم';
+        }
+      });
+
+      // View Demo Card Full Modal
+      document.querySelectorAll('.view-demo-modal-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const name = btn.getAttribute('data-name');
+          const topic = btn.getAttribute('data-topic');
+          const quoteAr = btn.getAttribute('data-quote-ar');
+          const quoteEn = btn.getAttribute('data-quote-en');
+
+          document.getElementById('detail-author').textContent = name;
+          document.getElementById('detail-title').textContent = `(نموذج تجريبي — ${topic})`;
+          document.getElementById('detail-rating').textContent = '★★★★★ (5/5)';
+          document.getElementById('detail-service').textContent = topic;
+          document.getElementById('detail-quote-ar').textContent = quoteAr;
+          document.getElementById('detail-quote-en').textContent = quoteEn;
+
+          const badge = document.getElementById('detail-status-badge');
+          badge.textContent = 'مسودة تجريبية (Demo / Draft)';
+          badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30';
+
+          detailModal.classList.remove('hidden');
+        });
+      });
+
+      // View Real Review Details Modal
+      let activeDetailRev = null;
+      document.querySelectorAll('.view-review-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const rev = JSON.parse(btn.getAttribute('data-json') || '{}');
+          activeDetailRev = rev;
+          document.getElementById('detail-author').textContent = rev.author_name || '';
+          document.getElementById('detail-title').textContent = rev.author_title_ar || rev.author_title_en || '';
+          document.getElementById('detail-rating').textContent = '★'.repeat(Number(rev.rating) || 5) + ` (${rev.rating}/5)`;
+          document.getElementById('detail-service').textContent = rev.service_title_ar || rev.service_title_en || 'تجربة عامة';
+          document.getElementById('detail-quote-ar').textContent = rev.quote_ar || '—';
+          document.getElementById('detail-quote-en').textContent = rev.quote_en || '—';
+
+          const badge = document.getElementById('detail-status-badge');
+          const st = Number(rev.is_approved);
+          if (st === 1) {
+            badge.textContent = 'معتمدة للنشر';
+            badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20';
+          } else if (st === -1) {
+            badge.textContent = 'مرفوضة';
+            badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-red-500/10 text-red-400 border border-red-500/20';
+          } else {
+            badge.textContent = 'بانتظار المراجعة';
+            badge.className = 'px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20';
+          }
+
+          detailModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('close-review-detail-btn')?.addEventListener('click', () => detailModal.classList.add('hidden'));
+      document.getElementById('detail-accept-btn')?.addEventListener('click', async () => {
+        if (!activeDetailRev) return;
+        await updateReviewStatus(activeDetailRev, 1, 'تم اعتماد التقييم ونشره');
+      });
+      document.getElementById('detail-reject-btn')?.addEventListener('click', async () => {
+        if (!activeDetailRev) return;
+        await updateReviewStatus(activeDetailRev, -1, 'تم رفض التقييم');
+      });
+
+      // Seed 20 Test Review Models into SQLite as Drafts
+      document.getElementById('seed-test-reviews-btn')?.addEventListener('click', async () => {
+        const btn = document.getElementById('seed-test-reviews-btn');
+        btn.disabled = true;
+        btn.classList.add('opacity-50');
+
+        try {
+          const res = await fetch('/api/admin/reviews/seed-test', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+          });
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشل تحميل النماذج التجريبية');
+          showToast(data.message, true);
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          btn.disabled = false;
+          btn.classList.remove('opacity-50');
+        }
+      });
+
+      function openAddModal() {
+        form.reset();
+        document.getElementById('review-form-id').value = '';
+        document.getElementById('review-modal-title').textContent = 'إضافة مراجعة موثقة';
+        modal.classList.remove('hidden');
+      }
+
+      document.getElementById('open-add-review-btn')?.addEventListener('click', openAddModal);
+      document.getElementById('close-review-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+      document.getElementById('cancel-review-modal-btn')?.addEventListener('click', () => modal.classList.add('hidden'));
+
+      form?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const id = document.getElementById('review-form-id').value.trim();
+        const isEdit = Boolean(id);
+
+        const payload = {
+          author_name: document.getElementById('review-author-name').value.trim(),
+          author_title_ar: document.getElementById('review-author-title').value.trim() || null,
+          author_title_en: document.getElementById('review-author-title').value.trim() || null,
+          service_id: document.getElementById('review-service-id').value || null,
+          rating: Number(document.getElementById('review-rating').value) || 5,
+          quote_ar: document.getElementById('review-quote-ar').value.trim(),
+          quote_en: document.getElementById('review-quote-en').value.trim(),
+          is_approved: document.getElementById('review-is-approved').checked ? 1 : 0,
+          is_verified: document.getElementById('review-is-verified').checked ? 1 : 0,
+        };
+
+        const saveBtn = document.getElementById('save-review-btn');
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'جاري الحفظ...';
+
+        try {
+          const endpoint = isEdit ? `/api/admin/reviews/${encodeURIComponent(id)}` : '/api/admin/reviews';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const res = await fetch(endpoint, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+            body: JSON.stringify(payload),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشلت العملية');
+
+          showToast(data.message || 'تم الحفظ بنجاح', true);
+          modal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'حفظ المراجعة';
+        }
+      });
+
+      let targetReviewId = null;
+      document.querySelectorAll('.delete-review-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          targetReviewId = btn.getAttribute('data-id');
+          document.getElementById('delete-review-name').textContent = btn.getAttribute('data-name');
+          deleteModal.classList.remove('hidden');
+        });
+      });
+
+      document.getElementById('cancel-review-delete-btn')?.addEventListener('click', () => {
+        deleteModal.classList.add('hidden');
+        targetReviewId = null;
+      });
+
+      document.getElementById('confirm-review-delete-btn')?.addEventListener('click', async () => {
+        if (!targetReviewId) return;
+        const confirmBtn = document.getElementById('confirm-review-delete-btn');
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'جاري الحذف...';
+
+        try {
+          const res = await fetch(`/api/admin/reviews/${encodeURIComponent(targetReviewId)}`, {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json', 'X-Alor-Admin-Action': '1' },
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.success) throw new Error(data.error || 'فشل الحذف');
+
+          showToast('تم حذف المراجعة بنجاح', true);
+          deleteModal.classList.add('hidden');
+          setTimeout(() => window.location.reload(), 800);
+        } catch (err) {
+          showToast(err.message, false);
+        } finally {
+          confirmBtn.disabled = false;
+          confirmBtn.textContent = 'نعم، حذف';
+        }
+      });
+    });
+  </script>
+</AdminLayout>

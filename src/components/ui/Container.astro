@@ -1,0 +1,24 @@
+---
+interface Props {
+  as?: string;
+  size?: 'narrow' | 'default' | 'wide';
+  class?: string;
+}
+
+const {
+  as: Component = 'div',
+  size = 'default',
+  class: className = '',
+  ...rest
+} = Astro.props;
+
+const sizeClasses = {
+  narrow: 'container-narrow',
+  default: 'container-default',
+  wide: 'container-wide',
+};
+---
+
+<Component class:list={[sizeClasses[size], className]} {...rest}>
+  <slot />
+</Component>

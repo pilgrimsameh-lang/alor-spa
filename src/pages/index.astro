@@ -1,0 +1,67 @@
+---
+import Layout from '../layouts/Layout.astro';
+import Header from '../components/layout/Header.astro';
+import Hero from '../components/sections/Hero.astro';
+import About from '../components/sections/About.astro';
+import Services from '../components/sections/Services.astro';
+import MassageMenu from '../components/sections/MassageMenu.astro';
+import Offers from '../components/sections/Offers.astro';
+import Gallery from '../components/sections/Gallery.astro';
+import Testimonials from '../components/sections/Testimonials.astro';
+import LocationContact from '../components/sections/LocationContact.astro';
+import Footer from '../components/layout/Footer.astro';
+import WhatsAppButton from '../components/ui/WhatsAppButton.astro';
+import { useTranslations } from '../i18n/utils';
+
+const t = useTranslations('ar');
+---
+
+<Layout
+  title={t('site.title')}
+  description={t('site.description')}
+>
+  <!-- Main Header with Navigation & Language Switcher -->
+  <Header />
+
+  <!-- Main Landmark for A11y Skip Link -->
+  <main id="main-content">
+    <!-- Hero Section -->
+    <Hero />
+
+    <!-- About ALOR SPA Section -->
+    <About />
+
+    <!-- 9 Signature Services Section -->
+    <Services />
+
+    <!-- Official Massage Menu (6 Types & 18 Durations) -->
+    <MassageMenu />
+
+    <!-- Curated Offers & Packages Section -->
+    <Offers />
+
+    <!-- Sanctuary Gallery Section -->
+    <Gallery />
+
+    <!-- Guest Impressions & Testimonials Section -->
+    <Testimonials />
+
+    <!-- Location, Hours & Direct Contact Section -->
+    <LocationContact />
+  </main>
+
+  <!-- Footer -->
+  <Footer />
+
+  <!-- Mobile Floating Quick-Booking Bar -->
+  <aside class="fixed bottom-4 inset-x-4 z-30 sm:hidden" aria-label="حجز سريع">
+    <div class="rounded-pill p-1 bg-chocolate-950/90 backdrop-blur-md border border-bronze-500/40 shadow-elevated">
+      <WhatsAppButton
+        variant="primary"
+        size="md"
+        label={t('common.bookViaWhatsApp')}
+        class="w-full justify-center !py-3 shadow-none text-body-sm font-semibold"
+      />
+    </div>
+  </aside>
+</Layout>

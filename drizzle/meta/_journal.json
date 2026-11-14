@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1793845991711,
+      "tag": "0000_damp_manta",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1793847087289,
+      "tag": "0001_handy_leech",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1793983122210,
+      "tag": "0002_colorful_jetstream",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1794000000000,
+      "tag": "0003_add_rate_limiting",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1794001000000,
+      "tag": "0004_massage_menu_and_packages",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794002000000,
+      "tag": "0005_add_booking_requests",
+      "breakpoints": true
+    }
+  ]
+}

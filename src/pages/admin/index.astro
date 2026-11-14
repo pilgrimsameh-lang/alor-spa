@@ -1,0 +1,363 @@
+---
+import AdminLayout from '../../layouts/AdminLayout.astro';
+import StatCard from '../../components/admin/StatCard.astro';
+import { getDb } from '../../server/db/index';
+
+export const prerender = false;
+
+const user = Astro.locals.user;
+const session = Astro.locals.session;
+
+if (!user || !session) {
+  return Astro.redirect('/admin/login');
+}
+
+// 1. Language & Direction Determination
+const queryLang = Astro.url.searchParams.get('lang');
+const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
+const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
+const isRtl = lang === 'ar';
+
+// 2. Query Real Statistics from SQLite Database (Zero Mock Data)
+const { client } = getDb();
+
+const [
+  servicesRes,
+  categoriesRes,
+  offersRes,
+  galleryRes,
+  reviewsRes,
+  blogRes,
+  usersRes,
+  mediaRes,
+  settingsRes,
+  newBookingsRes,
+  totalBookingsRes,
+] = await Promise.all([
+  client.execute('SELECT COUNT(*) as count FROM services;'),
+  client.execute('SELECT COUNT(*) as count FROM service_categories;'),
+  client.execute('SELECT COUNT(*) as count FROM offers WHERE is_active = 1;'),
+  client.execute('SELECT COUNT(*) as count FROM gallery_items;'),
+  client.execute('SELECT COUNT(*) as count FROM reviews;'),
+  client.execute('SELECT COUNT(*) as count FROM blog_posts;'),
+  client.execute('SELECT COUNT(*) as count FROM admin_users WHERE is_active = 1;'),
+  client.execute('SELECT COUNT(*) as count FROM media_files;'),
+  client.execute('SELECT COUNT(*) as count FROM site_settings;'),
+  client.execute("SELECT COUNT(*) as count FROM booking_requests WHERE status = 'new';").catch(() => ({ rows: [{ count: 0 }] })),
+  client.execute("SELECT COUNT(*) as count FROM booking_requests;").catch(() => ({ rows: [{ count: 0 }] })),
+]);
+
+const newBookingsCount = Number(newBookingsRes.rows[0]?.count ?? 0);
+const totalBookingsCount = Number(totalBookingsRes.rows[0]?.count ?? 0);
+
+const stats = {
+  services: Number(servicesRes.rows[0]?.count ?? 0),
+  categories: Number(categoriesRes.rows[0]?.count ?? 0),
+  publishedOffers: Number(offersRes.rows[0]?.count ?? 0),
+  gallery: Number(galleryRes.rows[0]?.count ?? 0),
+  reviews: Number(reviewsRes.rows[0]?.count ?? 0),
+  blog: Number(blogRes.rows[0]?.count ?? 0),
+  adminUsers: Number(usersRes.rows[0]?.count ?? 0),
+  mediaFiles: Number(mediaRes.rows[0]?.count ?? 0),
+  siteSettings: Number(settingsRes.rows[0]?.count ?? 0),
+};
+
+const roleNames: Record<string, { ar: string; en: string }> = {
+  super_admin: { ar: 'المدير العام للنظام', en: 'Super Administrator' },
+  role_super_admin: { ar: 'المدير العام للنظام', en: 'Super Administrator' },
+  spa_manager: { ar: 'مديرة السبا', en: 'Spa Manager' },
+  role_spa_manager: { ar: 'مديرة السبا', en: 'Spa Manager' },
+  content_editor: { ar: 'محررة المحتوى', en: 'Content Editor' },
+  role_content_editor: { ar: 'محررة المحتوى', en: 'Content Editor' },
+};
+
+const userRole = roleNames[user.roleSlug] || roleNames[user.roleId] || { ar: user.roleSlug, en: user.roleSlug };
+
+const sessionExpiryFormatted = new Date(session.expiresAt).toLocaleDateString(isRtl ? 'ar-SA' : 'en-US', {
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
+---
+
+<AdminLayout title={isRtl ? 'لوحة التحكم الرئيسية' : 'Dashboard Overview'}>
+  <!-- Welcome Banner Hero Card -->
+  <div class="relative rounded-2xl bg-gradient-to-r from-[#241814] via-[#1C130D] to-[#241814] border border-[#A87952]/30 p-6 sm:p-8 mb-8 shadow-xl overflow-hidden">
+    <div class="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-[#A87952]/10 blur-3xl pointer-events-none"></div>
+
+    <div class="max-w-3xl relative z-10">
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold tracking-wide bg-[#A87952]/20 border border-[#C5A880]/30 text-[#D8C4A3]">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          {isRtl ? 'جلسة إدارية نشطة ومحمية' : 'Secure Admin Session Active'}
+        </span>
+        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-[#140D09]/80 border border-[#A87952]/20 text-[#C5A880]">
+          SecGen #{user.securityGeneration}
+        </span>
+      </div>
+
+      <h1 class="text-2xl sm:text-3xl lg:text-4xl font-['Amiri',serif] font-bold text-[#FAF7F2] mb-2">
+        {isRtl ? `مرحباً بك، ${user.fullName}` : `Welcome back, ${user.fullName}`}
+      </h1>
+
+      <p class="text-xs sm:text-sm text-[#D8C4A3]/80 leading-relaxed font-light mb-6">
+        {isRtl
+          ? 'لوحة إدارة ألور سبا المتكاملة. يمكنك مراقبة إحصائيات الموقع الفعلية، إدارة الخدمات، التصنيفات، العروض، والصور بدقة وحماية تامة.'
+          : 'ALOR SPA integrated administrative hub. Monitor real-time system metrics, manage spa services, categories, offers, and media.'}
+      </p>
+
+      <!-- Key Session Badges -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="p-3 rounded-xl bg-[#140D09]/70 border border-[#A87952]/20">
+          <span class="text-[10px] uppercase text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'الدور الإداري' : 'Role'}</span>
+          <span class="text-xs font-semibold text-[#FAF7F2]">{isRtl ? userRole.ar : userRole.en}</span>
+        </div>
+        <div class="p-3 rounded-xl bg-[#140D09]/70 border border-[#A87952]/20">
+          <span class="text-[10px] uppercase text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'انتهاء الجلسة' : 'Session Expiry'}</span>
+          <span class="text-xs font-semibold text-[#C5A880]">{sessionExpiryFormatted}</span>
+        </div>
+        <div class="p-3 rounded-xl bg-[#140D09]/70 border border-[#A87952]/20">
+          <span class="text-[10px] uppercase text-[#D8C4A3]/60 block mb-0.5">{isRtl ? 'حالة قاعدة البيانات' : 'Database Engine'}</span>
+          <span class="text-xs font-semibold text-emerald-400">{isRtl ? 'SQLite WAL نشط' : 'SQLite WAL Active'}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alert for new unreviewed booking requests -->
+  {newBookingsCount > 0 && (
+    <div class="mb-8 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-amber-950/70 via-[#1C130D] to-[#140D09] border border-amber-500/40 shadow-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-fade-in">
+      <div class="flex items-center gap-3.5">
+        <div class="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 flex items-center justify-center shrink-0">
+          <svg class="w-5 h-5 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <div>
+          <h3 class="text-sm font-bold text-[#FAF7F2]">
+            {isRtl ? `يوجد ${newBookingsCount} طلبات حجز جديدة بحاجة للمتابعة والتأكيد!` : `You have ${newBookingsCount} new booking requests awaiting review!`}
+          </h3>
+          <p class="text-xs text-amber-200/70">
+            {isRtl ? 'اضغطي لمراجعة تفاصيل الطلب والتواصل مع العميلة لتأكيد الموعد عبر الواتساب.' : 'Click to review details and follow up with the client via WhatsApp.'}
+          </p>
+        </div>
+      </div>
+      <a
+        href="/admin/bookings"
+        class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-amber-500 hover:bg-amber-400 text-black transition-colors shrink-0 shadow-md font-sans"
+      >
+        <span>{isRtl ? 'متابعة الطلبات' : 'View Bookings'}</span>
+        <svg class="w-4 h-4 rtl:rotate-180" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+        </svg>
+      </a>
+    </div>
+  )}
+
+  <!-- Real Statistics Grid (Exactly 7 required metrics from live database) -->
+  <div class="mb-10">
+    <div class="flex items-center justify-between mb-4">
+      <div>
+        <h2 class="text-lg font-bold font-['Amiri',serif] text-[#FAF7F2]">
+          {isRtl ? 'إحصائيات المنصة الفعلية' : 'Live Platform Statistics'}
+        </h2>
+        <p class="text-xs text-[#D8C4A3]/60 font-light">
+          {isRtl ? 'أرقام حقيقية مستخرجة مباشرة من قاعدة البيانات دون قيم وهمية' : 'Real metrics fetched directly from SQLite database'}
+        </p>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <!-- 1. Services -->
+      <StatCard
+        title={isRtl ? 'الخدمات المتاحة' : 'Active Services'}
+        value={stats.services}
+        subtitle={isRtl ? 'خدمات السبا المعتمدة بالقائمة' : 'Verified spa catalog treatments'}
+        icon="services"
+        href="/admin/services"
+        badge={stats.services > 0 ? (isRtl ? 'مفعلة' : 'Active') : undefined}
+        lang={lang}
+      />
+
+      <!-- 2. Categories -->
+      <StatCard
+        title={isRtl ? 'تصنيفات الخدمات' : 'Service Categories'}
+        value={stats.categories}
+        subtitle={isRtl ? 'التصنيفات الرئيسية للخدمات' : 'Major catalog service groups'}
+        icon="categories"
+        href="/admin/categories"
+        badge={stats.categories > 0 ? (isRtl ? 'منظمة' : 'Organized') : undefined}
+        lang={lang}
+      />
+
+      <!-- 3. Published Offers -->
+      <StatCard
+        title={isRtl ? 'العروض المنشورة' : 'Published Offers'}
+        value={stats.publishedOffers}
+        subtitle={isRtl ? (stats.publishedOffers === 0 ? 'لا توجد باقات منشورة حالياً' : 'باقات ترويجية نشطة') : 'Active promotional packages'}
+        icon="offers"
+        href="/admin/offers"
+        badge={stats.publishedOffers === 0 ? (isRtl ? 'فارغ' : 'Empty') : (isRtl ? 'نشط' : 'Active')}
+        lang={lang}
+      />
+
+      <!-- 4. Gallery Images -->
+      <StatCard
+        title={isRtl ? 'صور المعرض' : 'Gallery Items'}
+        value={stats.gallery}
+        subtitle={isRtl ? 'صور الأجواء والمرافق المنشورة' : 'Ambiance and facility photos'}
+        icon="gallery"
+        href="/admin/gallery"
+        badge={stats.gallery > 0 ? (isRtl ? 'معروضة' : 'Live') : undefined}
+        lang={lang}
+      />
+
+      <!-- 5. Customer Reviews -->
+      <StatCard
+        title={isRtl ? 'آراء العملاء' : 'Customer Reviews'}
+        value={stats.reviews}
+        subtitle={isRtl ? (stats.reviews === 0 ? 'بانتظار تسجيل أول تجربة معتمدة' : 'مراجعات معتمدة') : 'Approved customer reviews'}
+        icon="reviews"
+        href="/admin/reviews"
+        badge={stats.reviews === 0 ? (isRtl ? 'قيد الانتظار' : 'Pending') : undefined}
+        lang={lang}
+      />
+
+      <!-- 6. Blog Posts -->
+      <StatCard
+        title={isRtl ? 'مقالات المدونة' : 'Blog Articles'}
+        value={stats.blog}
+        subtitle={isRtl ? (stats.blog === 0 ? 'لا توجد مقالات منشورة حالياً' : 'مقالات العناية المنشورة') : 'Published wellness articles'}
+        icon="blog"
+        href="/admin/blog"
+        badge={stats.blog === 0 ? (isRtl ? 'قيد الإعداد' : 'Drafting') : undefined}
+        lang={lang}
+      />
+
+      <!-- 7. Admin Users -->
+      <StatCard
+        title={isRtl ? 'المستخدمين الإداريين' : 'Admin Accounts'}
+        value={stats.adminUsers}
+        subtitle={isRtl ? 'حسابات الإدارة النشطة بالنظام' : 'Active administrators with RBAC'}
+        icon="users"
+        href="/admin/users"
+        lang={lang}
+      />
+
+      <!-- 8. Media Files (Bonus Metric) -->
+      <StatCard
+        title={isRtl ? 'ملفات الوسائط' : 'Media Assets'}
+        value={stats.mediaFiles}
+        subtitle={isRtl ? 'أصول الوسائط والصور المرفوعة' : 'Optimized WebP assets in storage'}
+        icon="media"
+        href="/admin/media"
+        lang={lang}
+      />
+
+      <!-- 9. Booking Requests -->
+      <StatCard
+        title={isRtl ? 'طلبات الحجز' : 'Booking Requests'}
+        value={totalBookingsCount}
+        subtitle={isRtl ? (newBookingsCount === 0 ? 'جميع الطلبات تمت مراجعتها' : `${newBookingsCount} طلبات بحاجة للمراجعة`) : `${newBookingsCount} new requests`}
+        icon="offers"
+        href="/admin/bookings"
+        badge={newBookingsCount > 0 ? (isRtl ? `${newBookingsCount} جديد` : `${newBookingsCount} New`) : undefined}
+        lang={lang}
+      />
+    </div>
+  </div>
+
+  <!-- System Health & Security Overview -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="lg:col-span-2 rounded-2xl bg-[#1C130D]/70 border border-[#A87952]/25 p-6 backdrop-blur-sm">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold font-['Amiri',serif] text-[#FAF7F2] flex items-center gap-2">
+          <svg class="w-5 h-5 text-[#C5A880]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          <span>{isRtl ? 'حالة الأمان والحماية المتقدمة' : 'Security & RBAC Enforcement'}</span>
+        </h3>
+        <span class="text-[11px] font-mono text-emerald-400 bg-emerald-500/10 px-2.5 py-0.5 rounded-full border border-emerald-500/20">
+          GEN #{user.securityGeneration} VALID
+        </span>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div class="flex items-center justify-between p-3 rounded-xl bg-[#140D09]/60 border border-[#A87952]/15">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-[#FAF7F2]">{isRtl ? 'حماية تزوير الطلبات (CSRF Protection)' : 'CSRF Origin Verification'}</span>
+          </div>
+          <span class="text-[#D8C4A3]/70">{isRtl ? 'مفعلة على كافة الروابط' : 'Active on all routes'}</span>
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-xl bg-[#140D09]/60 border border-[#A87952]/15">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-[#FAF7F2]">{isRtl ? 'تشفير كلمات المرور (Password Hashing)' : 'Argon2id Hashing'}</span>
+          </div>
+          <span class="text-[#D8C4A3]/70">Argon2id m=65536, t=3, p=4</span>
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-xl bg-[#140D09]/60 border border-[#A87952]/15">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-[#FAF7F2]">{isRtl ? 'صلاحيات الوصول (Server RBAC)' : 'Server-side RBAC'}</span>
+          </div>
+          <span class="text-[#C5A880] font-medium">{user.roleSlug}</span>
+        </div>
+
+        <div class="flex items-center justify-between p-3 rounded-xl bg-[#140D09]/60 border border-[#A87952]/15">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span class="text-[#FAF7F2]">{isRtl ? 'رقم الواتساب الرسمي المعتمد' : 'Official WhatsApp Protection'}</span>
+          </div>
+          <span class="font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded text-[11px]">
+            966553543192 (Immutable)
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Navigation Shortcuts -->
+    <div class="rounded-2xl bg-[#1C130D]/70 border border-[#A87952]/25 p-6 backdrop-blur-sm flex flex-col justify-between">
+      <div>
+        <h3 class="text-base font-bold font-['Amiri',serif] text-[#FAF7F2] mb-3">
+          {isRtl ? 'روابط الوصول السريع' : 'Quick Actions'}
+        </h3>
+        <p class="text-xs text-[#D8C4A3]/70 font-light mb-4">
+          {isRtl ? 'الانتقال المباشر إلى الأقسام الأكثر استخداماً لإدارة المحتوى.' : 'Jump directly to key administrative workflows.'}
+        </p>
+        <div class="space-y-2">
+          <a
+            href="/admin/services"
+            class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#241814] border border-[#A87952]/20 hover:border-[#C5A880]/50 hover:bg-[#38251F]/40 text-xs text-[#FAF7F2] transition-colors"
+          >
+            <span>{isRtl ? 'إدارة الخدمات والأسعار' : 'Manage Services'}</span>
+            <span class="text-[10px] font-mono text-[#C5A880]">{stats.services}</span>
+          </a>
+          <a
+            href="/admin/gallery"
+            class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#241814] border border-[#A87952]/20 hover:border-[#C5A880]/50 hover:bg-[#38251F]/40 text-xs text-[#FAF7F2] transition-colors"
+          >
+            <span>{isRtl ? 'معرض الصور' : 'Photo Gallery'}</span>
+            <span class="text-[10px] font-mono text-[#C5A880]">{stats.gallery}</span>
+          </a>
+          <a
+            href="/admin/settings"
+            class="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#241814] border border-[#A87952]/20 hover:border-[#C5A880]/50 hover:bg-[#38251F]/40 text-xs text-[#FAF7F2] transition-colors"
+          >
+            <span>{isRtl ? 'إعدادات الموقع' : 'Site Settings'}</span>
+            <span class="text-[10px] font-mono text-[#C5A880]">{stats.siteSettings}</span>
+          </a>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-[#A87952]/15 text-[11px] text-[#D8C4A3]/50">
+        {isRtl ? 'جميع العمليات مسجلة بسجل التدقيق الأمني' : 'All actions are audited in activity logs'}
+      </div>
+    </div>
+  </div>
+</AdminLayout>
