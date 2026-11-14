@@ -28,11 +28,11 @@ pnpm-debug.log*
 *.db
 *.db-wal
 *.db-shm
-data/
+/data/
 
 # uploaded media files & backup archives
-uploads/
-backups/
+/uploads/
+/backups/
 
 # macOS-specific files
 .DS_Store
