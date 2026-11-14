@@ -5,13 +5,10 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "alor-spa-db"
-database_id = "local-d1-placeholder"
+database_id = "b308194c-969d-4f4b-ba85-959acfaa6260"
 migrations_dir = "drizzle"
-
-[[r2_buckets]]
-binding = "MEDIA_BUCKET"
-bucket_name = "alor-spa-media"
 
 [vars]
 NODE_ENV = "production"
-STORAGE_DRIVER = "r2"
+STORAGE_DRIVER = "local"
+
