@@ -2,6 +2,7 @@ import { eq, sql } from 'drizzle-orm';
 import { adminUsers } from '../db/schema';
 import { verifyPassword, verifyDummyPassword, needsRehash } from './password';
 import type { LibSQLDatabase } from 'drizzle-orm/libsql';
+import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import * as schema from '../db/schema';
 
 /**
@@ -120,7 +121,7 @@ export interface AuthEvaluationResult {
  * 5. Uniform error responses to prevent user enumeration.
  */
 export async function authenticateCredentials(
-  db: LibSQLDatabase<typeof schema>,
+  db: DrizzleD1Database<typeof schema> | LibSQLDatabase<typeof schema>,
   params: {
     email: string;
     password: string;

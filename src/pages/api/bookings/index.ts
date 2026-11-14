@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../server/db/index';
 import { bookingRequestInputSchema } from '../../../server/validation/crud-schemas';
 
 export const prerender = false;
@@ -44,7 +43,7 @@ function generateBookingReference(): string {
   return `ALOR-BK-${year}-${randomSuffix}`;
 }
 
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request, clientAddress, locals }) => {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || clientAddress || 'unknown';
 
   if (isRateLimited(ip)) {
@@ -69,7 +68,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       notes: rawBody.notes ? sanitizeText(String(rawBody.notes)) : null,
     });
 
-    const { client } = getDb();
+    const client = locals.dbClient;
+    if (!client) {
+      return new Response(JSON.stringify({ success: false, error: 'Database unavailable' }), { status: 500 });
+    }
     const id = crypto.randomUUID();
     const requestNumber = generateBookingReference();
     const now = Date.now();

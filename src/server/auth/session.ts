@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import type { Client } from '@libsql/client';
+import type { DatabaseClient } from '../db/index';
 import { executeWithSqliteBudget } from '../db/budget';
 
 /**
@@ -52,7 +52,7 @@ export function hashSessionToken(token: string): string {
  * Creates a new authenticated session in SQLite with cryptographic SHA-256 token hashing.
  */
 export async function createSession(
-  client: Client,
+  client: DatabaseClient,
   params: {
     userId: string;
     clientIp?: string | null;
@@ -109,7 +109,7 @@ export async function createSession(
  * 6. If valid: slides the idle window (`last_activity_at = now`).
  */
 export async function validateSession(
-  client: Client,
+  client: DatabaseClient,
   rawToken: string,
   now = Date.now()
 ): Promise<SessionValidationResult> {
@@ -237,7 +237,7 @@ export async function validateSession(
  * Revokes a single session.
  */
 export async function revokeSession(
-  client: Client,
+  client: DatabaseClient,
   sessionId: string,
   now = Date.now()
 ): Promise<void> {
@@ -254,7 +254,7 @@ export async function revokeSession(
  * All existing sessions become immediately invalid on their next verification.
  */
 export async function revokeAllUserSessions(
-  client: Client,
+  client: DatabaseClient,
   userId: string,
   now = Date.now()
 ): Promise<void> {

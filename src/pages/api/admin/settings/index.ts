@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 
 export const prerender = false;
@@ -14,7 +13,7 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute('SELECT * FROM site_settings ORDER BY group_name ASC, key ASC;');
 
   return new Response(JSON.stringify({ success: true, data: res.rows }), {

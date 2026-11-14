@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { siteSettingInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -25,7 +24,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const existingRes = await client.execute({
     sql: 'SELECT * FROM site_settings WHERE key = ?;',
     args: [key],

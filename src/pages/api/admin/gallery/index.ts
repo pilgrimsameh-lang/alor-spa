@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { galleryInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -17,7 +16,7 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute(`
     SELECT g.*, m.public_url, m.filename, m.mime_type
     FROM gallery_items g
@@ -44,7 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const rawBody = await request.json();
     const parsed = galleryInputSchema.parse(rawBody);
-    const { client } = getDb();
+    const client = locals.dbClient!;
 
     // Verify media file exists
     const mediaCheck = await client.execute({

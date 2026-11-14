@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { processAndOptimizeImage, MediaValidationError } from '../../../../server/media/processor';
 import { getStorageAdapter } from '../../../../server/storage/adapter';
@@ -33,7 +32,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   let savedStoragePath: string | null = null;
-  const storage = getStorageAdapter();
+  const storage = getStorageAdapter(locals.runtime?.env?.MEDIA_BUCKET);
 
   try {
     const formData = await request.formData();
@@ -65,8 +64,8 @@ export const POST: APIRoute = async ({ request, locals }) => {
     const saved = await storage.save(processed.filename, processed.buffer, processed.mimeType);
     savedStoragePath = saved.storagePath;
 
-    // Insert into SQLite database
-    const { client } = getDb();
+    // Insert into SQLite / D1 database
+    const client = locals.dbClient!;
     const id = crypto.randomUUID();
     const now = Date.now();
 

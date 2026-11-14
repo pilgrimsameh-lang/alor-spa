@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 
 export const prerender = false;
@@ -19,7 +18,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
   const type = url.searchParams.get('type')?.trim().toLowerCase() || '';
   const sort = url.searchParams.get('sort')?.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
 
   let sqlQuery = `
     SELECT 

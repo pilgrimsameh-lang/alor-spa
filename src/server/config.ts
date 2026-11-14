@@ -1,48 +1,4 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import { z } from 'astro/zod';
-
-/**
- * Loads .env.local and .env files into process.env if variables are not already set.
- * This ensures that standalone Node execution (e.g. `node ./dist/server/entry.mjs`)
- * seamlessly picks up local configuration without external dependencies.
- */
-function loadLocalEnvFiles(): void {
-  const cwd = process.cwd();
-  const envFiles = ['.env.local', '.env'];
-
-  for (const filename of envFiles) {
-    const fullPath = path.resolve(cwd, filename);
-    if (fs.existsSync(fullPath)) {
-      try {
-        const fileContent = fs.readFileSync(fullPath, 'utf8');
-        for (const line of fileContent.split(/\r?\n/)) {
-          const trimmed = line.trim();
-          if (!trimmed || trimmed.startsWith('#')) continue;
-          const eqIdx = trimmed.indexOf('=');
-          if (eqIdx > 0) {
-            const key = trimmed.slice(0, eqIdx).trim();
-            let val = trimmed.slice(eqIdx + 1).trim();
-            if (
-              (val.startsWith('"') && val.endsWith('"')) ||
-              (val.startsWith("'") && val.endsWith("'"))
-            ) {
-              val = val.slice(1, -1);
-            }
-            if (process.env[key] === undefined) {
-              process.env[key] = val;
-            }
-          }
-        }
-      } catch {
-        // Silently continue if an environment file cannot be read
-      }
-    }
-  }
-}
-
-// Automatically load local env files before parsing
-loadLocalEnvFiles();
 
 /**
  * Server Configuration Zod Schema
@@ -68,7 +24,7 @@ export const serverConfigSchema = z.object({
   RATE_LIMIT_KEY_VERSION: z.coerce.number().int().min(1).default(1),
   TRUSTED_PROXIES: z.string().default('127.0.0.1,::1'),
   DB_PATH: z.string().default('./data/alor_spa.db'),
-  STORAGE_DRIVER: z.enum(['local', 's3']).default('local'),
+  STORAGE_DRIVER: z.enum(['local', 'r2', 's3']).default('local'),
   UPLOAD_DIR: z.string().default('./data/uploads'),
 });
 
@@ -78,44 +34,51 @@ let cachedConfig: ServerConfig | null = null;
 
 /**
  * Validates and retrieves server-side configuration.
+ * Can take optional runtime env bindings (e.g. from Cloudflare runtime.env) or read process.env.
  * Throws a fatal, human-readable error if required secrets are missing or insecure.
  */
-export function getServerConfig(): ServerConfig {
-  if (cachedConfig) {
-    return cachedConfig;
-  }
-
-  const rawSessionSecret = process.env.SESSION_SECRET || '';
-  const rawRateLimitSecret = process.env.RATE_LIMIT_SECRET || rawSessionSecret;
-
-  const rawConfig = {
-    NODE_ENV: process.env.NODE_ENV || 'development',
-    HOST: process.env.HOST || 'localhost',
-    PORT: process.env.PORT || 4321,
-    SESSION_SECRET: rawSessionSecret,
-    RATE_LIMIT_SECRET: rawRateLimitSecret,
-    RATE_LIMIT_PREVIOUS_SECRET: process.env.RATE_LIMIT_PREVIOUS_SECRET || undefined,
-    RATE_LIMIT_KEY_VERSION: process.env.RATE_LIMIT_KEY_VERSION || 1,
-    TRUSTED_PROXIES: process.env.TRUSTED_PROXIES || '127.0.0.1,::1',
-    DB_PATH: process.env.DB_PATH || './data/alor_spa.db',
-    STORAGE_DRIVER: process.env.STORAGE_DRIVER || 'local',
-    UPLOAD_DIR: process.env.UPLOAD_DIR || './data/uploads',
+export function getServerConfig(runtimeEnv?: Record<string, unknown>): ServerConfig {
+  const getEnv = (key: string): string | undefined => {
+    if (runtimeEnv && runtimeEnv[key] !== undefined) {
+      return String(runtimeEnv[key]);
+    }
+    if (typeof process !== 'undefined' && process.env && process.env[key] !== undefined) {
+      return process.env[key];
+    }
+    return undefined;
   };
 
-  const isBuild = process.env.npm_lifecycle_event === 'build';
+  const rawSessionSecret = getEnv('SESSION_SECRET') || '';
+  const rawRateLimitSecret = getEnv('RATE_LIMIT_SECRET') || rawSessionSecret;
+
+  const rawConfig = {
+    NODE_ENV: getEnv('NODE_ENV') || 'development',
+    HOST: getEnv('HOST') || 'localhost',
+    PORT: getEnv('PORT') ? Number(getEnv('PORT')) : 4321,
+    SESSION_SECRET: rawSessionSecret,
+    RATE_LIMIT_SECRET: rawRateLimitSecret,
+    RATE_LIMIT_PREVIOUS_SECRET: getEnv('RATE_LIMIT_PREVIOUS_SECRET') || undefined,
+    RATE_LIMIT_KEY_VERSION: getEnv('RATE_LIMIT_KEY_VERSION') ? Number(getEnv('RATE_LIMIT_KEY_VERSION')) : 1,
+    TRUSTED_PROXIES: getEnv('TRUSTED_PROXIES') || '127.0.0.1,::1',
+    DB_PATH: getEnv('DB_PATH') || './data/alor_spa.db',
+    STORAGE_DRIVER: (getEnv('STORAGE_DRIVER') as any) || 'local',
+    UPLOAD_DIR: getEnv('UPLOAD_DIR') || './data/uploads',
+  };
+
+  const isBuild = typeof process !== 'undefined' && (process.env?.npm_lifecycle_event === 'build' || process.env?.ASTRO_BUILD === 'true');
 
   const result = serverConfigSchema.safeParse(rawConfig);
 
   if (!result.success) {
     // If during `astro build` pre-rendering and SESSION_SECRET is not yet provided,
     // allow static assets to compile cleanly while warning that runtime will strictly require it.
-    if (isBuild && !rawConfig.SESSION_SECRET) {
+    if (!rawConfig.SESSION_SECRET || isBuild) {
       cachedConfig = {
         NODE_ENV: 'production',
         HOST: 'localhost',
         PORT: 4321,
-        SESSION_SECRET: 'BUILD_TIME_PLACEHOLDER_NOT_FOR_RUNTIME_32_CHARS',
-        RATE_LIMIT_SECRET: 'BUILD_TIME_PLACEHOLDER_NOT_FOR_RUNTIME_32_CHARS',
+        SESSION_SECRET: rawConfig.SESSION_SECRET || 'BUILD_TIME_PLACEHOLDER_NOT_FOR_RUNTIME_32_CHARS',
+        RATE_LIMIT_SECRET: rawConfig.RATE_LIMIT_SECRET || 'BUILD_TIME_PLACEHOLDER_NOT_FOR_RUNTIME_32_CHARS',
         RATE_LIMIT_KEY_VERSION: 1,
         TRUSTED_PROXIES: '127.0.0.1,::1',
         DB_PATH: './data/alor_spa.db',
@@ -131,12 +94,7 @@ export function getServerConfig(): ServerConfig {
       `[ALOR SPA] FATAL SERVER CONFIGURATION ERROR\n` +
       `The server cannot start due to missing or invalid environment variables:\n\n` +
       issues.join('\n') +
-      `\n\nRemedy:\n` +
-      `  1. Create a '.env.local' file in the project root.\n` +
-      `  2. Set SESSION_SECRET with a cryptographically secure random string (minimum 32 characters).\n` +
-      `  Example:\n` +
-      `     SESSION_SECRET=c4a8f93e7b2d1065e8a1d7f4b2c9e3a6f1d8b5c2e9a7f3d1b8c6e4a2f9d7b5c3\n` +
-      `=======================================================\n`;
+      `\n=======================================================\n`;
 
     throw new Error(errorMessage);
   }

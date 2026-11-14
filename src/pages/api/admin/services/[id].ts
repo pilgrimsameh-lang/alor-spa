@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { serviceInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -16,7 +15,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute({
     sql: 'SELECT * FROM services WHERE id = ?;',
     args: [params.id],
@@ -46,7 +45,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   }
 
   const id = params.id;
-  const { client } = getDb();
+  const client = locals.dbClient!;
 
   const existingRes = await client.execute({
     sql: 'SELECT * FROM services WHERE id = ?;',
@@ -124,7 +123,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   }
 
   const id = params.id;
-  const { client } = getDb();
+  const client = locals.dbClient!;
 
   const existingRes = await client.execute({
     sql: 'SELECT * FROM services WHERE id = ?;',

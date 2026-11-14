@@ -1,4 +1,4 @@
-import type { Client } from '@libsql/client';
+import type { DatabaseClient } from '../db/index';
 
 /**
  * ============================================================================
@@ -21,7 +21,7 @@ export interface MediaUsageResult {
   summaryMessageEn: string;
 }
 
-export async function checkMediaUsage(client: Client, mediaId: string): Promise<MediaUsageResult> {
+export async function checkMediaUsage(client: DatabaseClient, mediaId: string): Promise<MediaUsageResult> {
   const references: MediaReference[] = [];
 
   // 1. Check services
@@ -66,7 +66,7 @@ export async function checkMediaUsage(client: Client, mediaId: string): Promise<
     });
   }
 
-  // 4. Check blog posts
+  // 4. Check blog posts (featured_image_id)
   const blogCheck = await client.execute({
     sql: 'SELECT id, title_ar, title_en FROM blog_posts WHERE featured_image_id = ?;',
     args: [mediaId],
@@ -81,15 +81,13 @@ export async function checkMediaUsage(client: Client, mediaId: string): Promise<
   }
 
   const isInUse = references.length > 0;
-  let summaryMessageAr = '';
-  let summaryMessageEn = '';
+  const summaryMessageAr = isInUse
+    ? `الملف مرتبط حالياً بـ (${references.length}) عناصر في النظام (خدمات، عروض، أو مقالات). يجب فك الارتباط أولاً قبل الحذف.`
+    : 'الملف غير مستخدم في أي محتوى ويمكن حذفه بأمان.';
 
-  if (isInUse) {
-    const listAr = references.map((r) => `${r.type}: ${r.nameAr}`).join('، ');
-    const listEn = references.map((r) => `${r.type}: ${r.nameEn}`).join(', ');
-    summaryMessageAr = `لا يمكن حذف هذه الصورة لأنها مرتبطة بالمحتوى التالي: ${listAr}`;
-    summaryMessageEn = `Cannot delete this image because it is referenced in: ${listEn}`;
-  }
+  const summaryMessageEn = isInUse
+    ? `This media file is currently linked to (${references.length}) items. Unlink them before deletion.`
+    : 'Media is not currently used and can be safely deleted.';
 
   return {
     isInUse,

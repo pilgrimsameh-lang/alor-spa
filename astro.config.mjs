@@ -1,6 +1,6 @@
 // @ts-check
 import { defineConfig } from 'astro/config';
-import node from '@astrojs/node';
+import cloudflare from '@astrojs/cloudflare';
 import tailwindcss from '@tailwindcss/vite';
 
 const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://alorspa.com';
@@ -13,8 +13,11 @@ export default defineConfig({
     port: 4321,
   },
   output: 'static',
-  adapter: node({
-    mode: 'standalone',
+  adapter: cloudflare({
+    platformProxy: {
+      enabled: true,
+    },
+    prerenderEnvironment: 'node',
   }),
   i18n: {
     defaultLocale: 'ar',

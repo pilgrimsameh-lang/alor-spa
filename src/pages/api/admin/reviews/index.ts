@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { reviewInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -17,7 +16,7 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute(`
     SELECT r.*, s.title_ar as service_title_ar, s.title_en as service_title_en
     FROM reviews r
@@ -44,7 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const rawBody = await request.json();
     const parsed = reviewInputSchema.parse(rawBody);
-    const { client } = getDb();
+    const client = locals.dbClient!;
 
     const id = parsed.id || crypto.randomUUID();
     const now = Date.now();

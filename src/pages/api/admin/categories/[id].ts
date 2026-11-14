@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { categoryInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -17,7 +16,7 @@ export const PUT: APIRoute = async ({ params, request, locals }) => {
   }
 
   const id = params.id;
-  const { client } = getDb();
+  const client = locals.dbClient!;
 
   const existingRes = await client.execute({
     sql: 'SELECT * FROM service_categories WHERE id = ?;',
@@ -78,7 +77,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   }
 
   const id = params.id;
-  const { client } = getDb();
+  const client = locals.dbClient!;
 
   // Check if any service is linked to this category
   const servicesLinked = await client.execute({

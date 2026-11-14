@@ -1,7 +1,6 @@
 ---
 import AdminLayout from '../../../layouts/AdminLayout.astro';
 import MediaPickerModal from '../../../components/admin/MediaPickerModal.astro';
-import { getDb } from '../../../server/db/index';
 
 export const prerender = false;
 
@@ -13,7 +12,7 @@ const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
 const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
 const isRtl = lang === 'ar';
 
-const { client } = getDb();
+const client = Astro.locals.dbClient!;
 
 const [servicesRes, categoriesRes] = await Promise.all([
   client.execute(`

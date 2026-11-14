@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { categoryInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -16,7 +15,7 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute(`
     SELECT c.*, (SELECT COUNT(*) FROM services WHERE category_id = c.id) as services_count
     FROM service_categories c
@@ -42,7 +41,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const rawBody = await request.json();
     const parsed = categoryInputSchema.parse(rawBody);
-    const { client } = getDb();
+    const client = locals.dbClient!;
 
     // Check slug uniqueness
     const slugCheck = await client.execute({

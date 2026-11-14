@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import type { Client } from '@libsql/client';
+import type { DatabaseClient } from '../db/index';
 
 export interface ActivityLogParams {
   userId?: string | null;
@@ -17,7 +17,7 @@ export interface ActivityLogParams {
  * Sanitizes input to ensure zero tokens, passwords, or secrets are logged.
  */
 export async function recordActivityLog(
-  client: Client,
+  client: DatabaseClient,
   params: ActivityLogParams
 ): Promise<string> {
   const id = crypto.randomUUID();

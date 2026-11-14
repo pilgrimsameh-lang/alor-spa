@@ -1,5 +1,5 @@
 import crypto from 'node:crypto';
-import type { Client } from '@libsql/client';
+import type { DatabaseClient } from '../db/index';
 import { executeWithSqliteBudget } from '../db/budget';
 
 /**
@@ -57,7 +57,7 @@ export interface AcquireReservationResult {
  * Acquires a rate-limit and resource reservation slot atomically in SQLite.
  */
 export async function acquireReservation(
-  client: Client,
+  client: DatabaseClient,
   params: AcquireReservationParams
 ): Promise<AcquireReservationResult> {
   const now = params.now ?? Date.now();
@@ -167,7 +167,7 @@ export async function acquireReservation(
 /**
  * Cancels and deletes an active reservation (e.g. if semaphore times out or deadline exceeded).
  */
-export async function cancelReservation(client: Client, reservationId: string): Promise<void> {
+export async function cancelReservation(client: DatabaseClient, reservationId: string): Promise<void> {
   await executeWithSqliteBudget(async () => {
     await client.execute({
       sql: `DELETE FROM rate_limit_reservations WHERE id = ?;`,
@@ -203,7 +203,7 @@ export interface FinalizeAuthResult {
  * 3. If success: resets IP & Account counters, verifies generation, creates authenticated session.
  */
 export async function finalizeAuthentication(
-  client: Client,
+  client: DatabaseClient,
   params: FinalizeAuthParams
 ): Promise<FinalizeAuthResult> {
   const now = params.now ?? Date.now();
@@ -365,7 +365,7 @@ export async function finalizeAuthentication(
  * Prevents double-transformation and lost updates.
  */
 export async function mergeKeyRotationRecord(
-  client: Client,
+  client: DatabaseClient,
   keyV1: string,
   keyV2: string,
   currVersion = 2,

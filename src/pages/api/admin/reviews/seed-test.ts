@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
 import { DEMO_GUESTBOOK_REVIEWS } from '../../../../data/demo-reviews';
@@ -18,7 +17,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   }
 
   try {
-    const { client } = getDb();
+    const client = locals.dbClient!;
     const now = Date.now();
     let insertedCount = 0;
 

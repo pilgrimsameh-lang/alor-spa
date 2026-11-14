@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { serviceInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -17,7 +16,7 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute(`
     SELECT s.*, c.title_ar as category_title_ar, c.title_en as category_title_en
     FROM services s
@@ -44,7 +43,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const rawBody = await request.json();
     const parsed = serviceInputSchema.parse(rawBody);
-    const { client } = getDb();
+    const client = locals.dbClient!;
 
     // Verify category exists
     const catCheck = await client.execute({

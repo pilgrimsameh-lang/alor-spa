@@ -1,15 +1,14 @@
-import { hash, verify, Algorithm, Version } from '@node-rs/argon2';
+import { argon2id } from 'hash-wasm';
+import crypto from 'node:crypto';
 
 /**
  * ============================================================================
  * ALOR SPA — Hardened Argon2id Cryptographic Password Module
- * Strict compliance with OWASP & Phase 2 Blueprint Specifications
+ * Strict compliance with OWASP & Cloudflare / WebAssembly compatibility
  * ============================================================================
  */
 
 export const ARGON2_CONFIG = {
-  algorithm: Algorithm.Argon2id,
-  version: Version.V0x13, // version 19 (0x13)
   memoryCost: 65536,     // 64 MiB memory cost
   timeCost: 3,           // 3 iterations
   parallelism: 4,        // 4 concurrent threads
@@ -30,25 +29,64 @@ export const DUMMY_HASH =
  * Passwords and hashes are NEVER printed or logged.
  */
 export async function hashPassword(password: string): Promise<string> {
-  return hash(password, {
-    algorithm: ARGON2_CONFIG.algorithm,
-    version: ARGON2_CONFIG.version,
-    memoryCost: ARGON2_CONFIG.memoryCost,
-    timeCost: ARGON2_CONFIG.timeCost,
+  const salt = crypto.randomBytes(16);
+  return argon2id({
+    password,
+    salt,
     parallelism: ARGON2_CONFIG.parallelism,
-    outputLen: ARGON2_CONFIG.outputLen,
+    iterations: ARGON2_CONFIG.timeCost,
+    memorySize: ARGON2_CONFIG.memoryCost,
+    hashLength: ARGON2_CONFIG.outputLen,
+    outputType: 'encoded',
   });
 }
 
 /**
  * Verifies a plaintext password against an Argon2id hash.
- * Uses native constant-time comparison inside the Argon2 engine.
+ * Uses native constant-time comparison.
  */
 export async function verifyPassword(hashString: string, password: string): Promise<boolean> {
   try {
-    return await verify(hashString, password);
+    if (!hashString || !hashString.startsWith('$argon2id$')) {
+      return false;
+    }
+    const parts = hashString.split('$');
+    if (parts.length < 6) return false;
+
+    // parts[3] is e.g. "m=65536,t=3,p=4"
+    const params = Object.fromEntries(
+      parts[3].split(',').map((kv) => kv.split('='))
+    );
+    const m = parseInt(params.m, 10);
+    const t = parseInt(params.t, 10);
+    const p = parseInt(params.p, 10);
+
+    const saltB64 = parts[4];
+    const salt = Buffer.from(saltB64, 'base64');
+    const expectedHashB64 = parts[5];
+
+    const derived = await argon2id({
+      password,
+      salt,
+      parallelism: p,
+      iterations: t,
+      memorySize: m,
+      hashLength: Buffer.from(expectedHashB64, 'base64').length || 32,
+      outputType: 'encoded',
+    });
+
+    const derivedParts = derived.split('$');
+    const derivedHashB64 = derivedParts[5];
+
+    if (!derivedHashB64 || derivedHashB64.length !== expectedHashB64.length) {
+      return false;
+    }
+
+    return crypto.timingSafeEqual(
+      Buffer.from(derivedHashB64),
+      Buffer.from(expectedHashB64)
+    );
   } catch {
-    // Return false on malformed hash or verification error without throwing
     return false;
   }
 }
@@ -70,14 +108,13 @@ export function needsRehash(hashString: string): boolean {
     return true;
   }
 
-  // Parse parameters from standard Argon2 hash format: $argon2id$v=19$m=65536,t=3,p=4$...
   const parts = hashString.split('$');
   if (parts.length < 5) return true;
 
   const versionPart = parts[2]; // e.g. "v=19"
   const paramsPart = parts[3];  // e.g. "m=65536,t=3,p=4"
 
-  if (versionPart !== `v=${ARGON2_CONFIG.version}`) {
+  if (versionPart !== 'v=19') {
     return true;
   }
 

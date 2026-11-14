@@ -1,7 +1,6 @@
 ---
 import type { AdminUserLocal } from '../../server/auth/rbac';
 import { getAccessibleNavItems, ADMIN_GROUPS } from '../../server/auth/admin-nav';
-import { getDb } from '../../server/db/index';
 
 interface Props {
   user: AdminUserLocal;
@@ -21,9 +20,11 @@ const normalizedPath = currentPath.replace(/\/$/, '') || '/admin';
 
 let newBookingsCount = 0;
 try {
-  const { client } = getDb();
-  const res = await client.execute("SELECT COUNT(*) as count FROM booking_requests WHERE status = 'new';");
-  newBookingsCount = Number(res.rows[0]?.count ?? 0);
+  const client = Astro.locals.dbClient;
+  if (client) {
+    const res = await client.execute("SELECT COUNT(*) as count FROM booking_requests WHERE status = 'new';");
+    newBookingsCount = Number(res.rows[0]?.count ?? 0);
+  }
 } catch (e) {
   newBookingsCount = 0;
 }

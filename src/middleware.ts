@@ -1,20 +1,39 @@
 import { defineMiddleware } from 'astro:middleware';
 import { getServerConfig } from './server/config';
-import { getDb } from './server/db/index';
+import { getDb, getDbFromD1 } from './server/db/index';
 import { validateSession, SESSION_CONFIG } from './server/auth/session';
 
-// Validate server environment configuration upon server boot
-const config = getServerConfig();
-
 export const onRequest = defineMiddleware(async (context, next) => {
-  // Attach validated configuration to request context locals
-  context.locals.config = config;
+  const runtimeEnv = context.locals.runtime?.env;
+
+  // Validate server environment configuration using Cloudflare runtime env or process.env
+  context.locals.config = getServerConfig(runtimeEnv);
   context.locals.user = null;
   context.locals.session = null;
 
   const pathname = context.url.pathname;
   const isApiAdmin = pathname.startsWith('/api/admin');
   const isAdminPage = pathname.startsWith('/admin');
+  const isBookingApi = pathname.startsWith('/api/bookings');
+  const isReviewApi = pathname.startsWith('/api/reviews');
+
+  // Initialize DB instance for routes needing database operations
+  const needsDb = isApiAdmin || isAdminPage || isBookingApi || isReviewApi;
+  if (needsDb) {
+    if (runtimeEnv?.DB) {
+      const { client, db } = getDbFromD1(runtimeEnv.DB);
+      context.locals.db = db;
+      context.locals.dbClient = client;
+    } else {
+      try {
+        const { client, db } = getDb();
+        context.locals.db = db as any;
+        context.locals.dbClient = client;
+      } catch (err) {
+        console.warn('[Middleware] Local getDb fallback unavailable:', err);
+      }
+    }
+  }
 
   // If request is not targeting admin dashboard or admin APIs, proceed directly
   if (!isApiAdmin && !isAdminPage) {
@@ -33,11 +52,10 @@ export const onRequest = defineMiddleware(async (context, next) => {
     pathname === '/api/admin/auth/dev-login/';
 
   const sessionCookie = context.cookies.get(SESSION_CONFIG.COOKIE_NAME)?.value;
-  const { client } = getDb();
 
   // If accessing /admin/login while already holding a valid session, redirect to /admin dashboard
-  if (isLoginRoute && !isApiAdmin && sessionCookie) {
-    const check = await validateSession(client, sessionCookie);
+  if (isLoginRoute && !isApiAdmin && sessionCookie && context.locals.dbClient) {
+    const check = await validateSession(context.locals.dbClient, sessionCookie);
     if (check.valid && check.user) {
       return context.redirect('/admin');
     }
@@ -94,7 +112,17 @@ export const onRequest = defineMiddleware(async (context, next) => {
     return context.redirect(redirectUrl);
   }
 
-  const sessionResult = await validateSession(client, sessionCookie);
+  if (!context.locals.dbClient) {
+    if (isApiAdmin) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'تعذر الاتصال بقاعدة البيانات (Database Connection Error)' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      );
+    }
+    return new Response('Database Connection Unavailable', { status: 500 });
+  }
+
+  const sessionResult = await validateSession(context.locals.dbClient, sessionCookie);
 
   if (!sessionResult.valid || !sessionResult.user || !sessionResult.session) {
     // Clear invalid / expired / revoked cookie

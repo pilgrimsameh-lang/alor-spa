@@ -1,7 +1,6 @@
 ---
 import AdminLayout from '../../layouts/AdminLayout.astro';
 import StatCard from '../../components/admin/StatCard.astro';
-import { getDb } from '../../server/db/index';
 
 export const prerender = false;
 
@@ -18,8 +17,8 @@ const cookieLang = Astro.cookies.get('alor_admin_lang')?.value;
 const lang: 'ar' | 'en' = (queryLang === 'en' || (!queryLang && cookieLang === 'en')) ? 'en' : 'ar';
 const isRtl = lang === 'ar';
 
-// 2. Query Real Statistics from SQLite Database (Zero Mock Data)
-const { client } = getDb();
+// 2. Query Real Statistics from Database
+const client = Astro.locals.dbClient!;
 
 const [
   servicesRes,

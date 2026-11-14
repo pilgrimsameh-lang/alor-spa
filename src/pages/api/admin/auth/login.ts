@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../../server/db/index';
 import { adminUsers, adminSessions } from '../../../../server/db/schema';
 import { eq, or } from 'drizzle-orm';
 import { getServerConfig } from '../../../../server/config';
@@ -21,9 +20,10 @@ const GENERIC_ERROR_AR = 'البريد الإلكتروني/اسم المستخ�
 const LOCKOUT_ERROR_AR = 'تم تعليق المحاولات مؤقتاً لسلامة النظام. يرجى الانتظار 15 دقيقة قبل المحاولة من جديد.';
 const BUSY_ERROR_AR = 'خوادم المصادقة تحت ضغط مؤقت، يرجى المحاولة بعد لحظات.';
 
-export const POST: APIRoute = async ({ request }) => {
-  const config = getServerConfig();
-  const { client, db } = getDb();
+export const POST: APIRoute = async ({ request, locals }) => {
+  const config = locals.config || getServerConfig(locals.runtime?.env);
+  const client = locals.dbClient!;
+  const db = locals.db!;
   const now = Date.now();
 
   // 1. Origin & Anti-CSRF Check

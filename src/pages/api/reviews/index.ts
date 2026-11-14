@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../server/db/index';
 
 export const prerender = false;
 
@@ -38,9 +37,12 @@ function sanitizeText(str: string): string {
 }
 
 // GET /api/reviews — Returns only approved reviews
-export const GET: APIRoute = async () => {
+export const GET: APIRoute = async ({ locals }) => {
   try {
-    const { client } = getDb();
+    const client = locals.dbClient;
+    if (!client) {
+      return new Response(JSON.stringify({ success: false, error: 'Database unavailable' }), { status: 500 });
+    }
     const res = await client.execute(`
       SELECT 
         id, author_name, author_title_ar, author_title_en,
@@ -66,7 +68,7 @@ export const GET: APIRoute = async () => {
 };
 
 // POST /api/reviews — Submit guest review (Pending moderation)
-export const POST: APIRoute = async ({ request, clientAddress }) => {
+export const POST: APIRoute = async ({ request, clientAddress, locals }) => {
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0].trim() || clientAddress || 'unknown';
 
   if (isRateLimited(ip)) {
@@ -100,7 +102,10 @@ export const POST: APIRoute = async ({ request, clientAddress }) => {
       );
     }
 
-    const { client } = getDb();
+    const client = locals.dbClient;
+    if (!client) {
+      return new Response(JSON.stringify({ success: false, error: 'Database unavailable' }), { status: 500 });
+    }
     const id = crypto.randomUUID();
     const now = Date.now();
 

@@ -1,6 +1,5 @@
 import type { APIRoute } from 'astro';
 import crypto from 'node:crypto';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { blogPostInputSchema } from '../../../../server/validation/crud-schemas';
 import { recordActivityLog } from '../../../../server/audit/log-activity';
@@ -17,7 +16,7 @@ export const GET: APIRoute = async ({ locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute('SELECT * FROM blog_posts ORDER BY created_at DESC;');
 
   return new Response(JSON.stringify({ success: true, data: res.rows }), {
@@ -39,7 +38,7 @@ export const POST: APIRoute = async ({ request, locals }) => {
   try {
     const rawBody = await request.json();
     const parsed = blogPostInputSchema.parse(rawBody);
-    const { client } = getDb();
+    const client = locals.dbClient!;
 
     // Check slug uniqueness
     const slugCheck = await client.execute({

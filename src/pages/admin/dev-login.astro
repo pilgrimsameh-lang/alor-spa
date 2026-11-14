@@ -1,12 +1,11 @@
 ---
-import { getDb } from '../../server/db/index';
 import { createSession, SESSION_CONFIG } from '../../server/auth/session';
 import { getServerConfig } from '../../server/config';
 
 export const prerender = false;
 
-const config = getServerConfig();
-const { client } = getDb();
+const config = Astro.locals.config || getServerConfig(Astro.locals.runtime?.env);
+const client = Astro.locals.dbClient!;
 
 // Determine redirect target
 const redirectTarget = Astro.url.searchParams.get('redirect') || '/admin';

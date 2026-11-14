@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 
 export const prerender = false;
@@ -19,7 +18,7 @@ export const GET: APIRoute = async ({ request, locals }) => {
     const status = url.searchParams.get('status');
     const search = url.searchParams.get('search')?.trim();
 
-    const { client } = getDb();
+    const client = locals.dbClient!;
 
     let query = `
       SELECT b.*, s.title_ar as service_db_title_ar, s.title_en as service_db_title_en

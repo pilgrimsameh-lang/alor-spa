@@ -1,13 +1,12 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hashSessionToken, SESSION_CONFIG } from '../../../../server/auth/session';
 import { getServerConfig } from '../../../../server/config';
 
 export const prerender = false;
 
-export const POST: APIRoute = async ({ request, cookies }) => {
-  const config = getServerConfig();
-  const { client } = getDb();
+export const POST: APIRoute = async ({ request, cookies, locals }) => {
+  const config = locals.config || getServerConfig(locals.runtime?.env);
+  const client = locals.dbClient!;
 
   // 1. Anti-CSRF Origin check
   const origin = request.headers.get('origin');

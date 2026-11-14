@@ -1,0 +1,17 @@
+name = "alor-spa"
+compatibility_date = "2024-11-01"
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "alor-spa-db"
+database_id = "local-d1-placeholder"
+migrations_dir = "drizzle"
+
+[[r2_buckets]]
+binding = "MEDIA_BUCKET"
+bucket_name = "alor-spa-media"
+
+[vars]
+NODE_ENV = "production"
+STORAGE_DRIVER = "r2"

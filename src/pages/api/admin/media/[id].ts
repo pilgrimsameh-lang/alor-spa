@@ -1,5 +1,4 @@
 import type { APIRoute } from 'astro';
-import { getDb } from '../../../../server/db/index';
 import { hasPermission } from '../../../../server/auth/rbac';
 import { checkMediaUsage } from '../../../../server/media/dependency-check';
 import { mediaUpdateSchema } from '../../../../server/validation/crud-schemas';
@@ -26,7 +25,7 @@ export const GET: APIRoute = async ({ params, locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const res = await client.execute({
     sql: `SELECT m.*, u.full_name as uploader_name
           FROM media_files m
@@ -78,7 +77,7 @@ export const PATCH: APIRoute = async ({ params, request, locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const existingRes = await client.execute({
     sql: 'SELECT * FROM media_files WHERE id = ?;',
     args: [id],
@@ -179,7 +178,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
     });
   }
 
-  const { client } = getDb();
+  const client = locals.dbClient!;
   const existingRes = await client.execute({
     sql: 'SELECT * FROM media_files WHERE id = ?;',
     args: [id],
@@ -212,7 +211,7 @@ export const DELETE: APIRoute = async ({ params, request, locals }) => {
   }
 
   // 2. Delete file from storage adapter (if local file in uploads)
-  const storage = getStorageAdapter();
+  const storage = getStorageAdapter(locals.runtime?.env?.MEDIA_BUCKET);
   const storagePath = String(mediaRow.storage_path);
   // Only delete files under uploads/ directory to guarantee initial static assets (like images/services/*) are never touched
   if (storagePath.startsWith('uploads/')) {
