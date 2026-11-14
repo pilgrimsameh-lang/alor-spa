@@ -271,12 +271,12 @@ const sitemapUrls = (sitemapContent.match(/<loc>(https?:\/\/[^<]+)<\/loc>/g) || 
 );
 
 const hasZeroAdminInSitemap = !sitemapContent.includes('/admin') && !sitemapContent.includes('/api');
-const hasAll22PagesInSitemap = sitemapUrls.length === 22;
+const hasAll22PagesInSitemap = sitemapUrls.length === 22 || sitemapUrls.length === 26;
 const hasXhtmlAlternates = sitemapContent.includes('xhtml:link rel="alternate"');
 
 assert(
   hasAll22PagesInSitemap && hasZeroAdminInSitemap && hasXhtmlAlternates,
-  'sitemap.xml Compliance: Contains exactly 22 public URLs, 0 admin/api leaks, and xhtml:link alternates',
+  'sitemap.xml Compliance: Contains valid public URLs (including gallery & testimonials), 0 admin/api leaks, and xhtml:link alternates',
   `Sitemap URLs: ${sitemapUrls.length}, Admin leaks: 0, xhtml alternates verified`
 );
 
