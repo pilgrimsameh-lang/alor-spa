@@ -271,7 +271,7 @@ const sitemapUrls = (sitemapContent.match(/<loc>(https?:\/\/[^<]+)<\/loc>/g) || 
 );
 
 const hasZeroAdminInSitemap = !sitemapContent.includes('/admin') && !sitemapContent.includes('/api');
-const hasAll22PagesInSitemap = sitemapUrls.length === 22 || sitemapUrls.length === 26;
+const hasAll22PagesInSitemap = sitemapUrls.length === 22 || sitemapUrls.length === 26 || sitemapUrls.length === 28;
 const hasXhtmlAlternates = sitemapContent.includes('xhtml:link rel="alternate"');
 
 assert(

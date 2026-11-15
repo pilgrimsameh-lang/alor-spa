@@ -29,6 +29,12 @@ export const GET: APIRoute = ({ site }) => {
       priority: '0.9',
     },
     {
+      arPath: '/offers',
+      enPath: '/en/offers',
+      changefreq: 'weekly',
+      priority: '0.9',
+    },
+    {
       arPath: '/gallery',
       enPath: '/en/gallery',
       changefreq: 'monthly',
