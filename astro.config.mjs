@@ -3,7 +3,7 @@ import { defineConfig } from 'astro/config';
 import vercel from '@astrojs/vercel';
 import tailwindcss from '@tailwindcss/vite';
 
-const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://alorspa.com';
+const siteUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || 'https://alor-spa.vercel.app';
 
 // https://astro.build/config
 export default defineConfig({

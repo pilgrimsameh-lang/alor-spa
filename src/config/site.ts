@@ -99,7 +99,7 @@ export function getSiteUrl(): string {
   if (!envUrl && typeof process !== 'undefined' && process.env) {
     envUrl = process.env.SITE_URL || process.env.PUBLIC_SITE_URL || '';
   }
-  return envUrl ? envUrl.trim().replace(/\/+$/, '') : 'https://alorspa.com';
+  return envUrl ? envUrl.trim().replace(/\/+$/, '') : 'https://alor-spa.vercel.app';
 }
 
 /**

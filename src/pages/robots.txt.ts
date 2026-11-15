@@ -23,6 +23,7 @@ Disallow: /api/admin/
 
 # Sitemap Location
 Sitemap: ${siteUrl}/sitemap.xml
+Sitemap: https://alorspa.com/sitemap.xml
 `;
 
   return new Response(robots, {
