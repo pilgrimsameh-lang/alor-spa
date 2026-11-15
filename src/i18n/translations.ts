@@ -18,7 +18,7 @@ export const ui = {
     // Site Metadata
     'site.title': 'ألور سبا | أفضل سبا ومساج نسائي بالرياض — ALOR SPA',
     'site.description': 'ألور سبا — أفضل مركز مساج بالرياض وسبا نسائي فاخر. استمتعي بأرقى جلسات مساج استرخائي بالرياض، مساج علاجي بالرياض، مساج الأحجار الساخنة بالرياض، حمام مغربي بالرياض، وبدكير ومنكير في أجواء تنبض بالسكينة والخصوصية التامة.',
-    'site.keywords': 'مساج الرياض, مساج بالرياض, مساج في الرياض, أفضل مركز مساج في الرياض, مركز مساج نسائي بالرياض, سبا نسائي بالرياض, مركز سبا في الرياض, مساج نسائي, خدمات السبا النسائي, مساج استرخائي بالرياض, مساج ريلاكس بالرياض, مساج الأحجار الساخنة بالرياض, مساج الأنسجة العميقة بالرياض, مساج كاسات الهواء بالرياض, مساج علاجي بالرياض, مساج نحت الجسم بالرياض, تصريف السوائل بالرياض, بدكير ومنكير بالرياض, حمام مغربي بالرياض, ألور سبا, مركز ألور سبا, ALOR SPA, Alor Spa Riyadh',
+    'site.keywords': 'مساج الرياض, مساج بالرياض, مساج في الرياض, أفضل مركز مساج في الرياض, مركز مساج نسائي بالرياض, سبا نسائي بالرياض, مركز سبا في الرياض, مساج نسائي, خدمات السبا النسائي, مساج استرخائي بالرياض, مساج ريلاكس بالرياض, مساج الأحجار الساخنة بالرياض, مساج الأنسجة العميقة بالرياض, مساج كاسات الهواء بالرياض, مساج علاجي بالرياض, مساج الأقدام بالرياض, مساج نحت الجسم بالرياض, تصريف السوائل بالرياض, بدكير ومنكير بالرياض, حمام مغربي بالرياض, مساج منزلي بالرياض, مساج في المنزل بالرياض, خدمة مساج منزلي نسائي بالرياض, ألور سبا, مركز ألور سبا, ALOR SPA, Alor Spa Riyadh, ALOR SPA Saudi Arabia',
 
     // Navigation
     'nav.home': 'الرئيسية',
@@ -182,6 +182,19 @@ export const ui = {
     'booking.configuredNotice': 'سيتم تحويلكِ لمحادثة واتساب الرسمية للحجز.',
     'booking.directCall': 'الاتصال المباشر',
 
+    // FAQ Section
+    'faq.eyebrow': 'الأسئلة الشائعة والمعلومات',
+    'faq.title': 'دليلكِ الشامل لخدمات ألور سبا بالرياض',
+    'faq.subtitle': 'إجابات وافية حول جلسات المساج، الحمام المغربي، الخصوصية، والحجز في أفضل مركز مساج نسائي بالرياض.',
+    'faq.q1': 'ما الذي يجعل ألور سبا أفضل مركز مساج وسبا نسائي في الرياض؟',
+    'faq.a1': 'يُعد ألور سبا (ALOR SPA) الخيار الأول للباحثات عن أفضل مركز مساج نسائي بالرياض، حيث يوفر خصوصية نسائية مطلقة 100% وأجواءً فاخرة مفعمة بالهدوء. نحرص على تقديم خدمات السبا النسائي المتكاملة على أيدي أخصائيات معتمدات ومحترفات في كافة فنون التدليك والعناية بالبشرة.',
+    'faq.q2': 'ما هي أنواع المساج والخدمات المتوفرة في مركز ألور سبا الرياض؟',
+    'faq.a2': 'تتضمن قائمتنا باقة متنوعة من أرقى الجلسات: مساج ريلاكس بالرياض للاسترخاء الذهني والبدني، مساج الأحجار الساخنة بالرياض بخصائصها الحرارية البركانية، مساج الأنسجة العميقة بالرياض لعلاج التشنجات المزمنة، مساج كاسات الهواء بالرياض لتنشيط الدورة الدموية، مساج علاجي بالرياض لآلام الظهر والرقبة، مساج الأقدام بالرياض، مساج نحت الجسم بالرياض وتصريف السوائل اللمفاوي، إضافة إلى الحمام المغربي الملكي بالبخار والصابون البلدي، وجلسات بدكير ومنكير فاخرة بأدوات معقمة فردية.',
+    'faq.q3': 'هل يقدم مركز ألور سبا خدمة مساج منزلي بالرياض؟',
+    'faq.a3': 'نركز في ألور سبا أساساً على استقبال ضيفاتنا داخل ملاذنا الفاخر بالرياض لنضمن لكِ تجربة استرخاء متكاملة في بيئة مهيأة بأحدث التجهيزات وأعلى معايير التعقيم والسكينة. وبالنسبة لاستفسارات توفر خدمة مساج منزلي نسائي بالرياض أو الحجوزات الخاصة، يُرجى التواصل مباشرة مع فريق الاستقبال عبر الواتساب لتزويدكِ بالتفاصيل والإمكانية المتاحة.',
+    'faq.q4': 'كيف يمكنني حجز موعد وما هي مواعيد العمل الرسمية؟',
+    'faq.a4': 'يمكنكِ حجز جلستكِ بسهولة وسرعة عبر التواصل مباشرة عبر الواتساب على الرقم 0553543192 (966553543192+). نستقبل ضيفاتنا الكرام يومياً طوال أيام الأسبوع من الساعة 11:00 صباحاً وحتى الساعة 11:00 مساءً.',
+
     // Footer
     'footer.aboutText': 'ألور سبا وجهة نسائية متكاملة في الرياض تمنحكِ أرقى جلسات المساج، الحمام المغربي، وطقوس العناية الشخصية في بيئة تفيض بالسكينة والخصوصية المطلقة.',
     'footer.quickLinks': 'روابط سريعة',
@@ -197,7 +210,7 @@ export const ui = {
     // Site Metadata
     'site.title': "ALOR SPA | Best Women's Spa & Massage Center in Riyadh",
     'site.description': "ALOR SPA is the premier luxury women's spa and massage center in Riyadh. Experience bespoke relaxation massage, hot stone therapy, royal Moroccan bath, and nail care in serene privacy.",
-    'site.keywords': "ALOR SPA Riyadh, Women Spa Riyadh, Massage Center Riyadh, Relaxing Massage Riyadh, Hot Stone Massage Riyadh, Moroccan Bath Riyadh, deep tissue massage riyadh, body sculpting riyadh, pedicure manicure riyadh, Alor Spa Riyadh, ALOR SPA",
+    'site.keywords': "ALOR SPA Riyadh, Women Spa Riyadh, Massage Center Riyadh, Relaxing Massage Riyadh, Hot Stone Massage Riyadh, Moroccan Bath Riyadh, Home Massage Riyadh, Deep Tissue Massage Riyadh, Cupping Therapy Riyadh, Therapeutic Massage Riyadh, Foot Massage Riyadh, Body Sculpting Riyadh, Lymphatic Drainage Riyadh, Pedicure Manicure Riyadh, Alor Spa Riyadh, ALOR SPA, ALOR SPA Saudi Arabia, Women Massage Riyadh",
 
     // Navigation
     'nav.home': 'Home',
@@ -360,6 +373,19 @@ export const ui = {
     'booking.unconfiguredNotice': 'Instant WhatsApp booking line will activate shortly upon official number deployment.',
     'booking.configuredNotice': 'You will be connected to our official WhatsApp concierge.',
     'booking.directCall': 'Direct Call',
+
+    // FAQ Section
+    'faq.eyebrow': 'Frequently Asked Questions',
+    'faq.title': 'Your Comprehensive Guide to ALOR SPA Riyadh',
+    'faq.subtitle': 'Clear answers about our signature massage rituals, Moroccan bath, privacy, and reservations at the premier women wellness center in Riyadh.',
+    'faq.q1': 'What makes ALOR SPA the best women’s spa and massage center in Riyadh?',
+    'faq.a1': 'ALOR SPA is widely regarded as the premier luxury women spa and massage center in Riyadh, featuring a 100% women-only private sanctuary, tranquil ambiance, and certified expert therapists specializing in holistic relaxation and therapeutic bodywork.',
+    'faq.q2': 'What massage therapies and spa treatments are offered at ALOR SPA Riyadh?',
+    'faq.a2': 'Our treatments include: Relaxing Massage in Riyadh for deep mental renewal, Volcanic Hot Stone Massage in Riyadh, Deep Tissue Massage in Riyadh, Cupping Therapy Massage in Riyadh, Clinical Therapeutic Massage in Riyadh, Foot Reflexology Massage in Riyadh, Lymphatic Drainage & Body Sculpting Massage in Riyadh, authentic Royal Moroccan Bath in steam hammam, and luxury single-use Pedicure & Manicure.',
+    'faq.q3': 'Does ALOR SPA provide home massage services in Riyadh?',
+    'faq.a3': 'ALOR SPA primarily welcomes clients inside our luxury private sanctuary in Riyadh to guarantee five-star ambiance and medical-grade sanitization. For special inquiries regarding women home massage services in Riyadh or private VIP arrangements, please contact our reception directly via WhatsApp.',
+    'faq.q4': 'How do I book an appointment and what are the opening hours?',
+    'faq.a4': 'Reservations can be made instantly via official WhatsApp at +966553543192. We welcome our guests daily from 11:00 AM to 11:00 PM.',
 
     // Footer
     'footer.aboutText': "ALOR SPA is an exclusive women's wellness destination in Riyadh providing signature massage therapies, authentic Moroccan hammam, and bespoke beauty treatments in unmatched privacy and luxury.",

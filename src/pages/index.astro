@@ -8,10 +8,12 @@ import MassageMenu from '../components/sections/MassageMenu.astro';
 import Offers from '../components/sections/Offers.astro';
 import Gallery from '../components/sections/Gallery.astro';
 import Testimonials from '../components/sections/Testimonials.astro';
+import FAQ from '../components/sections/FAQ.astro';
 import LocationContact from '../components/sections/LocationContact.astro';
 import Footer from '../components/layout/Footer.astro';
 import WhatsAppButton from '../components/ui/WhatsAppButton.astro';
 import { useTranslations } from '../i18n/utils';
+import { getFaqSchema } from '../data/faq';
 
 const t = useTranslations('ar');
 ---
@@ -19,6 +21,7 @@ const t = useTranslations('ar');
 <Layout
   title={t('site.title')}
   description={t('site.description')}
+  structuredData={[getFaqSchema('ar')]}
 >
   <!-- Main Header with Navigation & Language Switcher -->
   <Header />
@@ -45,6 +48,9 @@ const t = useTranslations('ar');
 
     <!-- Guest Impressions & Testimonials Section -->
     <Testimonials />
+
+    <!-- Comprehensive FAQ & Search Intent Section -->
+    <FAQ />
 
     <!-- Location, Hours & Direct Contact Section -->
     <LocationContact />
