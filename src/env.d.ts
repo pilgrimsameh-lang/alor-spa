@@ -18,6 +18,10 @@ export interface CloudflareEnv {
   PUBLIC_SITE_URL?: string;
 }
 
+declare module "cloudflare:workers" {
+  export const env: CloudflareEnv;
+}
+
 declare namespace App {
   interface Locals {
     runtime?: import('@astrojs/cloudflare').Runtime<CloudflareEnv>;

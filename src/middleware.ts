@@ -4,7 +4,14 @@ import { getDb, getDbFromD1 } from './server/db/index';
 import { validateSession, SESSION_CONFIG } from './server/auth/session';
 
 export const onRequest = defineMiddleware(async (context, next) => {
-  const runtimeEnv = context.locals.runtime?.env;
+  let runtimeEnv: any = undefined;
+  try {
+    // @ts-ignore
+    const cf = await import('cloudflare:workers');
+    runtimeEnv = cf?.env;
+  } catch {
+    // Not running inside Cloudflare Workers runtime (local fallback)
+  }
 
   // Validate server environment configuration using Cloudflare runtime env or process.env
   context.locals.config = getServerConfig(runtimeEnv);
